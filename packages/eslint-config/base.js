@@ -14,6 +14,15 @@ export const config = [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ["apps/api/prisma.config.ts"],
+        },
+      },
+    },
+  },
+  {
     plugins: {
       turbo: turboPlugin,
     },
