@@ -17,7 +17,12 @@ export const config = [
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["apps/api/prisma.config.ts"],
+          allowDefaultProject: [
+            "apps/api/prisma.config.ts",
+            "eslint.config.js",
+            "postcss.config.mjs",
+            "next.config.mjs",
+          ],
         },
       },
     },
