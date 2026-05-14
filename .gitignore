@@ -36,3 +36,5 @@ npm-debug.log*
 *.pem
 
 .pnpm-store
+.playwright-mcp
+docs
