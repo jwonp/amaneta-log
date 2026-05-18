@@ -37,3 +37,4 @@ npm-debug.log*
 
 .pnpm-store
 .playwright-mcp
+.env.production

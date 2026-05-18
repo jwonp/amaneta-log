@@ -50,6 +50,10 @@ pnpm --filter api prisma:migrate:docker
 - Compose 개발 환경 기준 기본 마이그레이션 경로다.
 - 호스트 Prisma CLI는 `apps/api/.env`의 `PRISMA_DATABASE_URL`을 사용하고, 컨테이너 내부 런타임은 `DATABASE_URL`을 사용한다.
 
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
 ## 4. 문서 맵
 
 - [docs/00_README.md](./docs/00_README.md): 전체 문서 인덱스와 라벨링 규칙

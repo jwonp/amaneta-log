@@ -1,9 +1,12 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22-alpine
+
+FROM node:22-alpine AS base
 
 WORKDIR /app
 
 RUN corepack enable
+
+FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/package.json
@@ -15,11 +18,46 @@ RUN --mount=type=cache,id=amaneta-pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store \
     && pnpm install --frozen-lockfile --filter api...
 
+FROM base AS builder
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api ./apps/api
 COPY packages ./packages
 
 WORKDIR /app/apps/api
 
-EXPOSE 4000
+ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ENV DATABASE_URL=${DATABASE_URL}
 
-CMD ["pnpm", "dev"]
+RUN pnpm prisma generate
+RUN pnpm build
+
+FROM base AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/node_modules ./node_modules
+
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
+COPY --from=builder /app/packages ./packages
+
+WORKDIR /app/apps/api
+
+ARG API_PORT=4000
+ENV API_PORT=${API_PORT}
+
+EXPOSE ${API_PORT}
+
+CMD ["node", "dist/main"]

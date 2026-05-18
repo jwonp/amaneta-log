@@ -1,0 +1,122 @@
+services:
+  web:
+    container_name: amaneta-log-web
+    build:
+      context: .
+      dockerfile: apps/web/dockerfile
+      args:
+        WEB_PORT: ${WEB_PORT}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+        BACKEND_URL: ${BACKEND_URL}
+    env_file:
+      - .env.production
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${WEB_PORT} || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  api:
+    container_name: amaneta-log-api
+    build:
+      context: .
+      dockerfile: apps/api/dockerfile
+      args:
+        API_PORT: ${API_PORT}
+    env_file:
+      - .env.production
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${API_PORT} || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      default:
+        aliases:
+          - api
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: amaneta-log-postgres
+    command: ["postgres", "-c", "port=${POSTGRES_PORT}"]
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    expose:
+      - "${POSTGRES_PORT}"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -p $${POSTGRES_PORT}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      default:
+        aliases:
+          - postgres
+          - prod-postgres
+
+  minio:
+    image: minio/minio:latest
+    container_name: amaneta-log-minio
+    command: server /data --address ":${MINIO_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
+    env_file:
+      - .env.production
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    restart: unless-stopped
+    expose:
+      - "${MINIO_PORT}"
+      - "${MINIO_CONSOLE_PORT}"
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${MINIO_PORT}/minio/health/live || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      default:
+        aliases:
+          - minio
+          - prod-minio
+
+volumes:
+  postgres_prod_data:
+    name: amaneta-log-postgres-prod-data
+  minio_prod_data:
+    name: amaneta-log-minio-prod-data
