@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  CardFooter,
 } from "@packages/ui/src/components/card"
 import { Input } from "@packages/ui/src/components/input"
 import { Label } from "@packages/ui/src/components/label"
