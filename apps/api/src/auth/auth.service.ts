@@ -29,6 +29,9 @@ const scrypt = promisify(scryptCallback);
 const PASSWORD_HASH_LENGTH = 64;
 const PASSWORD_MIN_LENGTH = 8;
 const REFRESH_TOKEN_HASH_ALGORITHM = 'sha256';
+type DecodedJwtPayload = {
+  exp?: number;
+};
 
 @Injectable()
 export class AuthService {
@@ -300,12 +303,15 @@ export class AuthService {
     return timingSafeEqual(storedHashBuffer, derivedKey);
   }
 
-  private async issueTokens(params: {
-    userId: number;
-    username: string;
-    provider: UserProvider;
-    role: UserRole;
-  }, tx?: PrismaTransactionClient): Promise<AuthTokenResponse> {
+  private async issueTokens(
+    params: {
+      userId: number;
+      username: string;
+      provider: UserProvider;
+      role: UserRole;
+    },
+    tx?: PrismaTransactionClient,
+  ): Promise<AuthTokenResponse> {
     const client = tx ?? this.prisma;
     const accessPayload: AccessTokenPayload = {
       sub: `${params.username}:${params.provider}`,
@@ -336,17 +342,13 @@ export class AuthService {
       this.jwt.signAsync(refreshPayload, refreshTokenSignOptions),
     ]);
 
-    const decodedAccessToken = this.jwt.decode(accessToken) as
-      | { exp?: number }
-      | null;
+    const decodedAccessToken = this.decodeJwt(accessToken);
 
     if (!decodedAccessToken?.exp) {
       throw new BadRequestException('failed to issue access token');
     }
 
-    const decodedRefreshToken = this.jwt.decode(refreshToken) as
-      | { exp?: number }
-      | null;
+    const decodedRefreshToken = this.decodeJwt(refreshToken);
 
     if (!decodedRefreshToken?.exp) {
       throw new BadRequestException('failed to issue refresh token');
@@ -383,5 +385,15 @@ export class AuthService {
     return createHash(REFRESH_TOKEN_HASH_ALGORITHM)
       .update(`${refreshToken}${pepper}`)
       .digest('hex');
+  }
+
+  private decodeJwt(token: string): DecodedJwtPayload | null {
+    const decoded: unknown = this.jwt.decode(token);
+
+    if (!decoded || typeof decoded !== 'object') {
+      return null;
+    }
+
+    return decoded as DecodedJwtPayload;
   }
 }
