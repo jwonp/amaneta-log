@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  generatedFileExtension = "cts"
+  importFileExtension    = "cjs"
+  moduleFormat           = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------
+// Auth / User
+// -----------------------------
+
+enum UserProvider {
+  CREDENTIALS
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model UserAuth {
+  id        Int      @id @default(autoincrement())
+
+  username  String   @unique
+  password  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())  @updatedAt
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+
+  username     String
+  provider     UserProvider @default(CREDENTIALS)
+
+  email        String       @default("")
+  name         String
+  profileImage String?
+
+  role         UserRole     @default(USER)
+  status       UserStatus   @default(ACTIVE)
+
+  posts        Post[]
+  refreshTokens RefreshToken[]
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([username, provider])
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RefreshToken {
+  id        Int          @id @default(autoincrement())
+
+  userId    Int
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String       @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// -----------------------------
+// Post
+// -----------------------------
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
+}
+
+model Post {
+  id          Int        @id @default(autoincrement())
+
+  title       String     @default("")
+  description String?
+  markdown    String     @default("")
+  tags        String[]
+  isPublic    Boolean    @default(false)
+
+  status      PostStatus @default(DRAFT)
+
+  authorId    Int
+  author      User       @relation(fields: [authorId],references: [id],onDelete: Cascade)
+
+  files       StorageFile[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  publishedAt DateTime?
+
+  @@index([authorId])
+  @@index([status])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+// -----------------------------
+// Storage File
+// -----------------------------
+
+enum StorageFileStatus {
+  TEMP
+  ATTACHED
+  ORPHANED
+  DELETED
+}
+
+enum StorageFileUsage {
+  CONTENT
+  THUMBNAIL
+}
+
+enum StorageFileKind {
+  IMAGE
+  VIDEO
+  OTHER
+}
+
+model StorageFile {
+  id Int @id @default(autoincrement())
+
+  postId Int
+  post   Post @relation(fields: [postId],references: [id],onDelete: Cascade)
+
+  usage  StorageFileUsage  @default(CONTENT)
+  kind   StorageFileKind
+  status StorageFileStatus @default(TEMP)
+
+  originalName String
+  storedName   String
+  mimeType     String
+  size         Int
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  attachedAt DateTime?
+  orphanedAt DateTime?
+  deletedAt  DateTime?
+
+  @@unique([postId, storedName])
+  @@index([postId])
+  @@index([status])
+  @@index([usage])
+  @@index([kind])
+  @@index([createdAt])
+  @@index([orphanedAt])
+  @@index([deletedAt])
+}

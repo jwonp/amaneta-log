@@ -1,0 +1,30 @@
+.git
+.gitignore
+.DS_Store
+
+# Dependency directories
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build and tool caches
+.next
+**/.next
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+.turbo
+**/.turbo
+.playwright-mcp
+
+# Local environment files
+.env
+**/.env
+**/.env.local
+
+# Local docs and editor noise that are not needed in images
+docs
+.vscode
