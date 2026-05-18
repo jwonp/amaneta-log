@@ -1,98 +1,54 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# amaneta-log API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+`apps/api`는 게시물, 인증, 스토리지 기능을 담당하는 NestJS 애플리케이션이다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 1. 문서 목적
 
-## Description
+- 이 문서는 API 앱의 실행 명령, 현재 모듈, 관련 계획 문서를 빠르게 찾기 위한 인덱스다.
+- 기능별 상세 설계와 구현 순서는 루트 `docs/` 하위 문서를 기준으로 관리한다.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 2. 현재 모듈
 
-## Project setup
+- `auth`: JWT 인증과 권한 가드
+- `post`: 게시물 초안 생성, 상세 조회, 수정
+- `storage`: 게시물 파일 업로드와 조회
+- `user`: 사용자 조회
+- `prisma`: DB 접근 공통 모듈
+
+## 3. 실행 명령
 
 ```bash
-$ pnpm install
+pnpm --filter api dev
+pnpm --filter api build
+pnpm --filter api lint
+pnpm --filter api test
+pnpm --filter api test:e2e
 ```
 
-## Compile and run the project
+Prisma:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm --filter api prisma:generate
+pnpm --filter api prisma:migrate
+pnpm --filter api prisma:migrate:docker
+pnpm --filter api prisma:studio
 ```
 
-## Run tests
+주의:
 
-```bash
-# unit tests
-$ pnpm run test
+- 로컬 호스트에서 Prisma CLI를 직접 실행할 때는 `PRISMA_DATABASE_URL`이 사용된다.
+- Docker Compose 개발 환경에서는 `pnpm --filter api prisma:migrate:docker`를 기본 명령으로 사용한다.
+- 앱 런타임은 컨테이너 내부 네트워크를 쓰므로 `DATABASE_URL`은 `postgres:5432`를 유지한다.
 
-# e2e tests
-$ pnpm run test:e2e
+## 4. 현재 구현 메모
 
-# test coverage
-$ pnpm run test:cov
-```
+- `POST /posts/draft`, `GET /posts/:postId`, `GET /posts/:postId/edit`, `PATCH /posts/:postId`는 이미 연결돼 있다.
+- `GET /posts`는 아직 비어 있어 에디터 목록과 공개 포스트 목록의 책임을 분리해서 설계해야 한다.
+- 현재 공개 파일 조회 라우트는 발행된 게시물만 허용하므로, 드래프트 썸네일 목록 노출에는 별도 보호 경로가 필요하다.
 
-## Deployment
+## 5. 관련 문서
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- [../../docs/00_README.md](/Users/joowon/Desktop/workspace/amaneta-log/docs/00_README.md)
+- [../../docs/02_Development/00_Plan/00_README.md](/Users/joowon/Desktop/workspace/amaneta-log/docs/02_Development/00_Plan/00_README.md)
+- [../../docs/02_Development/01_Guide/00_README.md](/Users/joowon/Desktop/workspace/amaneta-log/docs/02_Development/01_Guide/00_README.md)
+- [../../docs/02_Development/00_Plan/01_EDITOR_LIST_INFINITE_SCROLL_PLAN.md](/Users/joowon/Desktop/workspace/amaneta-log/docs/02_Development/00_Plan/01_EDITOR_LIST_INFINITE_SCROLL_PLAN.md)

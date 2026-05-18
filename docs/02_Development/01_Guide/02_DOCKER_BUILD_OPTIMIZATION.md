@@ -86,24 +86,12 @@ Static validation completed:
 docker compose config
 ```
 
-Live image verification could not be completed in this session because the local daemon returned:
+Live image verification could not be completed in that session because Docker Desktop was unavailable.
 
-```text
-Error response from daemon: Docker Desktop is unable to start
-```
-
-Once Docker Desktop is healthy again, re-run:
+권장 재검증:
 
 ```bash
 docker compose down
-docker compose build web api
-docker compose up -d
-```
-
-If you want a completely fresh dependency seed after these volume changes:
-
-```bash
-docker compose down -v
 docker compose build web api
 docker compose up -d
 ```
