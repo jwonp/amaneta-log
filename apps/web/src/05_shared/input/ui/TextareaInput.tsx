@@ -7,6 +7,8 @@ interface TextareaInputProps {
   name: string
   placeholder?: string
   defaultValue?: string
+  value?: string
+  onChange?: (value: string) => void
   rows?: number
   ref?: Ref<HTMLInputElement>
 }
@@ -17,11 +19,14 @@ const TextareaInput = ({
 
   placeholder = "내용을 입력하세요...",
   defaultValue = "",
+  value,
+  onChange,
 
   rows = 6,
   ref,
 }: TextareaInputProps) => {
-  const [value, setValue] = useState(defaultValue)
+  const [internalValue, setInternalValue] = useState(defaultValue)
+  const textareaValue = value ?? internalValue
 
   const hiddenInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -43,10 +48,16 @@ const TextareaInput = ({
       <textarea
         id={id}
         rows={rows}
-        value={value}
+        value={textareaValue}
         placeholder={placeholder}
         onChange={(event) => {
-          setValue(event.target.value)
+          const nextValue = event.target.value
+
+          if (value === undefined) {
+            setInternalValue(nextValue)
+          }
+
+          onChange?.(nextValue)
         }}
         className="min-h-36 w-full min-w-0 resize-none rounded-xs border border-input bg-background px-5 py-4 text-sm leading-6 text-foreground outline-0 outline-none placeholder:text-muted-foreground focus:ring-0 focus-visible:ring-0 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
       />
@@ -54,7 +65,7 @@ const TextareaInput = ({
       <input
         ref={setHiddenInputRef}
         type="hidden"
-        value={value}
+        value={textareaValue}
         name={name}
         readOnly
       />

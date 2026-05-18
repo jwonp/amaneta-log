@@ -29,5 +29,7 @@ export type UploadPostFileResponse = {
   storedName: string;
   mimeType: string;
   size: number;
-  publicUrl: string;
+  attachedAt: Date | null;
+  orphanedAt: Date | null;
+  deletedAt: Date | null;
 };

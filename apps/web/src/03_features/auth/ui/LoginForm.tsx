@@ -64,7 +64,7 @@ const LoginForm = () => {
               <Input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 placeholder="user@example.com"
                 required
               />

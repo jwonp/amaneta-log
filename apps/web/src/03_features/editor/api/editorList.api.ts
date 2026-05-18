@@ -42,7 +42,7 @@ const mapEditablePostListItem = (
   item: GetEditablePostListResponse["items"][number]
 ): EditorListItemCardProps => {
   const thumbnailSrc = item.thumbnailFileId
-    ? `/api/storage/${item.id}/files/${item.thumbnailFileId}/editable`
+    ? `/api/storage/${item.id}/files/${item.thumbnailFileId}`
     : undefined
 
   const cardItem: EditorListItemCardProps = {

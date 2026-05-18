@@ -2,16 +2,18 @@ import TextInput from "@/src/05_shared/input/ui/TextInput"
 import { useId } from "react"
 import { EDITOR_FORM_NAME } from "../../model/EditorForm.const"
 interface EditorTitleFieldProps {
-  initTitle?: string
+  value?: string
+  onChange?: (value: string) => void
 }
-const EditorTitleField = ({ initTitle }: EditorTitleFieldProps) => {
+const EditorTitleField = ({ value, onChange }: EditorTitleFieldProps) => {
   const id = useId()
   return (
     <div className="mb-4">
       <TextInput
         id={`${EDITOR_FORM_NAME.TITLE}-${id}`}
         name={EDITOR_FORM_NAME.TITLE}
-        defaultValue={initTitle}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
       />
     </div>
   )

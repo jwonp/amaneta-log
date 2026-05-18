@@ -1,5 +1,5 @@
 const MARKDOWN_IMAGE_REGEX = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
-const HTML_MEDIA_SRC_REGEX = /<(?:img|video)[^>]+src=["']([^"']+)["']/g;
+const EDITOR_STORAGE_PATH_REGEX = /^\/api\/storage\/(\d+)\/files\/(\d+)$/;
 
 export const extractFileUrlsFromMarkdown = (markdown: string): string[] => {
   const urls = new Set<string>();
@@ -10,76 +10,54 @@ export const extractFileUrlsFromMarkdown = (markdown: string): string[] => {
     }
   }
 
-  for (const match of markdown.matchAll(HTML_MEDIA_SRC_REGEX)) {
-    if (match[1]) {
-      urls.add(match[1]);
-    }
-  }
-
   return Array.from(urls);
 };
 
-export const extractPostStorageStoredNamesFromMarkdown = (
+export const extractPostStorageFileIdsFromMarkdown = (
   markdown: string,
   postId: number,
-  bucket?: string,
-): string[] => {
-  const storedNames = new Set<string>();
-  const postPathPattern = bucket
-    ? `/${bucket}/posts/${postId}/`
-    : `/posts/${postId}/`;
+): number[] => {
+  const fileIds = new Set<number>();
 
   for (const url of extractFileUrlsFromMarkdown(markdown)) {
-    const storedName = extractStoredNameFromPostStorageUrl(
-      url,
-      postPathPattern,
-      Boolean(bucket),
-    );
+    const fileReference = extractPostStorageFileReference(url);
 
-    if (storedName) {
-      storedNames.add(storedName);
+    if (!fileReference || fileReference.postId !== postId) {
+      continue;
     }
+
+    fileIds.add(fileReference.fileId);
   }
 
-  return Array.from(storedNames);
+  return Array.from(fileIds);
 };
 
-const extractStoredNameFromPostStorageUrl = (
-  url: string,
-  postPathPattern: string,
-  shouldRequireAbsoluteUrl: boolean,
-) => {
+const extractPostStorageFileReference = (url: string) => {
   try {
-    const parsedUrl = new URL(url);
-    return extractStoredNameFromPath(parsedUrl.pathname, postPathPattern);
-  } catch {
-    if (shouldRequireAbsoluteUrl) {
-      return null;
-    }
+    const parsedUrl = new URL(url, 'http://localhost');
 
-    return extractStoredNameFromPath(url, postPathPattern);
+    return extractPostStorageFileReferenceFromPath(parsedUrl.pathname);
+  } catch {
+    return null;
   }
 };
 
-const extractStoredNameFromPath = (path: string, postPathPattern: string) => {
-  const postPathStart = path.indexOf(postPathPattern);
+const extractPostStorageFileReferenceFromPath = (path: string) => {
+  const matchedPath = path.match(EDITOR_STORAGE_PATH_REGEX);
 
-  if (postPathStart === -1) {
+  if (!matchedPath) {
     return null;
   }
 
-  const pathAfterPostId = path.slice(postPathStart + postPathPattern.length);
-  const segments = pathAfterPostId.split('/').filter(Boolean);
+  const postId = Number.parseInt(matchedPath[1] ?? '', 10);
+  const fileId = Number.parseInt(matchedPath[2] ?? '', 10);
 
-  if (segments.length < 2) {
+  if (!Number.isFinite(postId) || !Number.isFinite(fileId)) {
     return null;
   }
 
-  const storedName = segments[1];
-
-  if (!storedName) {
-    return null;
-  }
-
-  return decodeURIComponent(storedName);
+  return {
+    postId,
+    fileId,
+  };
 };

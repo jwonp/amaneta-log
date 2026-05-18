@@ -7,6 +7,8 @@ interface TagInputProps {
   id: string
   name: string
   defaultValue?: string[]
+  value?: string[]
+  onChange?: (nextValue: string[]) => void
   placeholder?: string
   ref?: Ref<HTMLInputElement>
 }
@@ -19,14 +21,25 @@ const TagInput = ({
   id,
   name,
   defaultValue = [],
+  value,
+  onChange,
   placeholder = "태그를 입력하세요",
   ref,
 }: TagInputProps) => {
-  const [tags, setTags] = useState<string[]>(defaultValue)
+  const [internalTags, setInternalTags] = useState<string[]>(defaultValue)
   const [inputValue, setInputValue] = useState("")
   const hiddenInputRef = useRef<HTMLInputElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const chipButtonRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const tags = value ?? internalTags
+
+  const updateTags = (nextTags: string[]) => {
+    if (value === undefined) {
+      setInternalTags(nextTags)
+    }
+
+    onChange?.(nextTags)
+  }
 
   const setHiddenInputRef = (element: HTMLInputElement | null) => {
     hiddenInputRef.current = element
@@ -54,13 +67,13 @@ const TagInput = ({
       return
     }
 
-    setTags((prev) => [...prev, nextTag])
+    updateTags([...tags, nextTag])
     setInputValue("")
     focusInput()
   }
 
   const removeTag = (targetTag: string) => {
-    setTags((prev) => prev.filter((tag) => tag !== targetTag))
+    updateTags(tags.filter((tag) => tag !== targetTag))
     focusInput()
   }
 
@@ -88,7 +101,7 @@ const TagInput = ({
     }
 
     if (event.key === "Backspace" && inputValue.length === 0) {
-      setTags((prev) => prev.slice(0, -1))
+      updateTags(tags.slice(0, -1))
     }
   }
 

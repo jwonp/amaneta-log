@@ -1,16 +1,16 @@
 import 'dotenv/config';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
 import { existsSync } from 'node:fs';
 
-type Env = {
-  DATABASE_URL: string;
-  PRISMA_DATABASE_URL?: string;
-};
-
 const isRunningInDocker = existsSync('/.dockerenv');
-const prismaDatabaseUrl = isRunningInDocker
-  ? env<Env>('DATABASE_URL')
-  : process.env.PRISMA_DATABASE_URL ?? env<Env>('DATABASE_URL');
+
+const databaseUrl = isRunningInDocker
+  ? process.env.DATABASE_URL
+  : (process.env.PRISMA_DATABASE_URL ?? process.env.DATABASE_URL);
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required for Prisma.');
+}
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -18,6 +18,6 @@ export default defineConfig({
     path: 'prisma/migrations',
   },
   datasource: {
-    url: prismaDatabaseUrl,
+    url: databaseUrl,
   },
 });

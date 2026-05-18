@@ -12,6 +12,8 @@ interface SwtichInputProps {
     off: string
   }
   defaultValue?: boolean
+  value?: boolean
+  onChange?: (nextValue: boolean) => void
   ref?: Ref<HTMLInputElement>
 }
 
@@ -20,10 +22,13 @@ const SwtichInput = ({
   name,
   label,
   defaultValue = false,
+  value,
+  onChange,
   ref,
 }: SwtichInputProps) => {
   const hiddenInputRef = useRef<HTMLInputElement | null>(null)
-  const [isOn, setOn] = useState<boolean>(defaultValue)
+  const [internalIsOn, setInternalIsOn] = useState<boolean>(defaultValue)
+  const isOn = value ?? internalIsOn
 
   const syncHiddenInput = (checked: boolean) => {
     if (!hiddenInputRef.current) return
@@ -33,7 +38,11 @@ const SwtichInput = ({
   }
 
   const handleCheckedChange = (checked: boolean) => {
-    setOn(checked)
+    if (value === undefined) {
+      setInternalIsOn(checked)
+    }
+
+    onChange?.(checked)
     syncHiddenInput(checked)
   }
 

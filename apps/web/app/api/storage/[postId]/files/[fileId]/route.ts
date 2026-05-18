@@ -1,3 +1,5 @@
+import { authOptions } from "@/lib/auth/next-auth.config"
+import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 
 type RouteContext = {
@@ -8,6 +10,7 @@ type RouteContext = {
 }
 
 export const GET = async (_request: NextRequest, context: RouteContext) => {
+  const session = await getServerSession(authOptions)
   const { postId, fileId } = await context.params
 
   const backendUrl =
@@ -25,6 +28,11 @@ export const GET = async (_request: NextRequest, context: RouteContext) => {
     {
       method: "GET",
       cache: "no-store",
+      headers: session?.accessToken
+        ? {
+            Authorization: `Bearer ${session.accessToken}`,
+          }
+        : undefined,
     }
   )
 

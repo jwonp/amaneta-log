@@ -9,6 +9,7 @@ import { UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PostModule } from './post/post.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PostModule } from './post/post.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],

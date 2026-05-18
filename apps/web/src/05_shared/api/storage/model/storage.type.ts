@@ -24,4 +24,6 @@ export interface StorageFile {
   mimeType: string
   size: number
   attachedAt: Date | null
+  orphanedAt: Date | null
+  deletedAt: Date | null
 }

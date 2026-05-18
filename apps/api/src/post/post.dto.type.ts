@@ -86,3 +86,11 @@ export interface SavePostRequset {
   isPublic: boolean;
   thumbnailId?: number | null;
 }
+
+export interface SavePostResponse {
+  id: number;
+  status: PostStatus;
+  isPublic: boolean;
+  updatedAt: string;
+  publishedAt: string | null;
+}

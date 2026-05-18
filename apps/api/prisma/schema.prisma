@@ -163,6 +163,8 @@ model StorageFile {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   attachedAt DateTime?
+  orphanedAt DateTime?
+  deletedAt  DateTime?
 
   @@unique([postId, storedName])
   @@index([postId])
@@ -170,4 +172,6 @@ model StorageFile {
   @@index([usage])
   @@index([kind])
   @@index([createdAt])
+  @@index([orphanedAt])
+  @@index([deletedAt])
 }

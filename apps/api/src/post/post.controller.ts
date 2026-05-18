@@ -24,6 +24,7 @@ import type {
   SavePostRequset,
   GetPostListQuery,
   GetPostListResponse,
+  SavePostResponse,
 } from './post.dto.type';
 import type { AuthenticatedRequest } from '../auth/auth.type';
 
@@ -91,9 +92,10 @@ export class PostController {
   @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
   async savePost(
+    @Req() request: AuthenticatedRequest,
     @Param('postId') postId: string,
     @Body() body: SavePostRequset,
-  ) {
-    return this.postService.savePost(Number(postId), body);
+  ): Promise<SavePostResponse> {
+    return await this.postService.savePost(Number(postId), body, request.user);
   }
 }

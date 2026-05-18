@@ -4,10 +4,16 @@ import { StorageService } from './storage.service';
 import { StorageController } from './storage.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtService } from '@nestjs/jwt';
+import { StorageOrphanCleanupService } from './storage-orphan-cleanup.service';
 
 @Module({
   imports: [PrismaModule],
-  providers: [s3Provider, StorageService, JwtService],
+  providers: [
+    s3Provider,
+    StorageService,
+    StorageOrphanCleanupService,
+    JwtService,
+  ],
   exports: [s3Provider, StorageService],
   controllers: [StorageController],
 })

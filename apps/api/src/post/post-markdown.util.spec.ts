@@ -1,34 +1,33 @@
 import {
   extractFileUrlsFromMarkdown,
-  extractPostStorageStoredNamesFromMarkdown,
+  extractPostStorageFileIdsFromMarkdown,
 } from './post-markdown.util';
 
 describe('post markdown utils', () => {
-  it('extracts markdown image and html media urls without duplicates', () => {
+  it('extracts markdown image urls without duplicates', () => {
     const markdown = [
-      '![image](http://localhost:9000/amaneta-log/posts/1/content/a.png)',
-      '![duplicate](http://localhost:9000/amaneta-log/posts/1/content/a.png)',
-      '<img src="/storages/posts/1/files/2" />',
-      '<video src="https://cdn.example.com/video.mp4"></video>',
+      '![cover](/api/storage/1/files/12)',
+      '![duplicate](/api/storage/1/files/12)',
+      '![external](https://example.com/image.png)',
     ].join('\n');
 
     expect(extractFileUrlsFromMarkdown(markdown)).toEqual([
-      'http://localhost:9000/amaneta-log/posts/1/content/a.png',
-      '/storages/posts/1/files/2',
-      'https://cdn.example.com/video.mp4',
+      '/api/storage/1/files/12',
+      'https://example.com/image.png',
     ]);
   });
 
-  it('extracts only stored names that belong to the current post storage path', () => {
+  it('extracts only file ids that belong to the current post storage route', () => {
     const markdown = [
-      '![used](http://localhost:9000/amaneta-log/posts/1/content/a.png)',
-      '<img src="http://localhost:9000/amaneta-log/posts/1/content/b%20file.png" />',
-      '![other-post](http://localhost:9000/amaneta-log/posts/2/content/c.png)',
-      '![external](https://example.com/posts/1/content/d.png)',
+      '![used](/api/storage/1/files/12)',
+      '![absolute](https://amaneta.dev/api/storage/1/files/33)',
+      '![other-post](/api/storage/2/files/99)',
+      '<img src="/api/storage/1/files/44" />',
+      '![invalid](/api/storage/1/files/not-a-number)',
     ].join('\n');
 
-    expect(
-      extractPostStorageStoredNamesFromMarkdown(markdown, 1, 'amaneta-log'),
-    ).toEqual(['a.png', 'b file.png']);
+    expect(extractPostStorageFileIdsFromMarkdown(markdown, 1)).toEqual([
+      12, 33,
+    ]);
   });
 });

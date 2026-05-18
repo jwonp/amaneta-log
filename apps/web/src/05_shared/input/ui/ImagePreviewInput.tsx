@@ -56,14 +56,14 @@ const ImagePreviewInput = ({
   const clear = useCallback(() => {
     revokeObjectUrl()
     setFile(null)
-    setPreviewSrc(defaultPreviewSrc ?? null)
+    setPreviewSrc(null)
 
     if (inputRef.current) {
       inputRef.current.value = ""
     }
 
     onChange?.(null)
-  }, [defaultPreviewSrc, onChange, revokeObjectUrl])
+  }, [onChange, revokeObjectUrl])
 
   useImperativeHandle(
     ref,
@@ -146,6 +146,20 @@ const ImagePreviewInput = ({
             {previewSrc ? "이미지 교체" : "이미지 선택"}
           </span>
         </div>
+
+        {previewSrc ? (
+          <button
+            type="button"
+            className="absolute top-3 right-3 rounded-xs bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              clear()
+            }}
+          >
+            이미지 제거
+          </button>
+        ) : null}
       </label>
 
       <Input type="hidden" name={name} value={value ?? ""} readOnly />

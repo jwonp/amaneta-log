@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  GetEditablePostListResponse,
   GetPostListQuery,
   GetPostListResponse,
 } from "@/src/05_shared/api/post/model/post.dto.type"
@@ -71,7 +70,7 @@ export const usePostListApi = (filters: GetPostListQuery = {}) => {
         .catch(() => ({ data: undefined }))
 
       if (!response?.data) {
-        throw new Error("failed to fetch editable posts")
+        throw new Error("failed to fetch posts")
       }
 
       return response.data

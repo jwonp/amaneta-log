@@ -87,7 +87,7 @@ const MarkDownPreview = ({ previewHeight, markdown }: MarkDownPreviewProps) => {
               </td>
             ),
             code: ({ children }) => (
-              <code className="rounded bg-muted px-1.5 py-0.5 text-xs break-words">
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs wrap-break-word">
                 {children}
               </code>
             ),

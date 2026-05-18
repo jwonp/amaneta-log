@@ -27,7 +27,7 @@ const EditorThumbnail = ({
     formData.append("usage", "THUMBNAIL")
 
     const { data } = await axios.post<UploadPostFileResponse>(
-      `/storage/${postId}/files`,
+      `/api/storage/${postId}/files`,
       formData,
       {
         headers: {

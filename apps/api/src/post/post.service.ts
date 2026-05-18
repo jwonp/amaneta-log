@@ -1,8 +1,8 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -14,6 +14,7 @@ import {
   GetPostDraftIdResponse,
   SavePostRequset,
   GetPostListQuery,
+  SavePostResponse,
 } from './post.dto.type';
 import {
   Prisma,
@@ -22,16 +23,13 @@ import {
   StorageFileUsage,
   User,
   UserProvider,
+  UserRole,
 } from '../../generated/prisma/client.cjs';
-import { extractPostStorageStoredNamesFromMarkdown } from './post-markdown.util';
-import { ConfigService } from '@nestjs/config';
+import { extractPostStorageFileIdsFromMarkdown } from './post-markdown.util';
 
 @Injectable()
 export class PostService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async getPostDraftId(params: {
     username: string;
@@ -235,7 +233,13 @@ export class PostService {
       },
       include: {
         author: true,
-        files: true,
+        files: {
+          where: {
+            status: {
+              not: StorageFileStatus.DELETED,
+            },
+          },
+        },
       },
     });
 
@@ -244,9 +248,13 @@ export class PostService {
     }
 
     const { author, files, ...post } = rawPost;
-    const thumbnail = files.find((f) => f.usage === 'THUMBNAIL');
+    const thumbnail = files.find(
+      (file) =>
+        file.usage === StorageFileUsage.THUMBNAIL &&
+        file.status === StorageFileStatus.ATTACHED,
+    );
 
-    const postResponse: GetPostByIdResponse = {
+    return {
       post: {
         id: post.id,
         title: post.title,
@@ -265,8 +273,6 @@ export class PostService {
         mimeType,
       })),
     };
-
-    return postResponse;
   }
 
   async getEditablePostById(
@@ -275,7 +281,7 @@ export class PostService {
       username: string;
       provider: UserProvider;
     },
-  ) {
+  ): Promise<GetEditablePostByIdResponse> {
     const user = await this.prismaService.user.findUnique({
       where: {
         username_provider: {
@@ -285,6 +291,7 @@ export class PostService {
       },
       select: {
         id: true,
+        role: true,
       },
     });
 
@@ -296,29 +303,36 @@ export class PostService {
         files: true,
       },
     });
-    console.log({ user, post });
-    if (!user || post?.authorId !== user.id) {
-      throw new UnauthorizedException('Not Allowed');
-    }
 
     if (!post) {
       throw new NotFoundException('post not found');
     }
 
+    this.assertEditablePostAccess({
+      postAuthorId: post.authorId,
+      user,
+    });
+
     const { files, ...rest } = post;
-    const editablePostResponse: GetEditablePostByIdResponse = {
+
+    return {
       post: rest,
       files,
     };
-
-    return editablePostResponse;
   }
 
-  async savePost(postId: number, postPayload: SavePostRequset) {
-    const usedStoredNames = extractPostStorageStoredNamesFromMarkdown(
+  async savePost(
+    postId: number,
+    postPayload: SavePostRequset,
+    user: {
+      username: string;
+      provider: UserProvider;
+      role: UserRole;
+    },
+  ): Promise<SavePostResponse> {
+    const usedContentFileIds = extractPostStorageFileIdsFromMarkdown(
       postPayload.markdown,
       postId,
-      this.config.getOrThrow<string>('MINIO_BUCKET'),
     );
     const now = new Date();
 
@@ -329,6 +343,7 @@ export class PostService {
         },
         select: {
           id: true,
+          authorId: true,
           publishedAt: true,
         },
       });
@@ -337,8 +352,30 @@ export class PostService {
         throw new NotFoundException('post not found');
       }
 
-      const thumbnailId = postPayload.thumbnailId ?? null;
-      const attachedAt = now;
+      const editingUser = await tx.user.findUnique({
+        where: {
+          username_provider: {
+            username: user.username,
+            provider: user.provider,
+          },
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+
+      this.assertEditablePostAccess({
+        postAuthorId: existingPost.authorId,
+        user: editingUser,
+      });
+
+      await this.assertReferencedFilesAreValid({
+        tx,
+        postId,
+        thumbnailId: postPayload.thumbnailId ?? null,
+        contentFileIds: usedContentFileIds,
+      });
 
       const post = await tx.post.update({
         where: {
@@ -361,68 +398,216 @@ export class PostService {
         select: {
           id: true,
           status: true,
-          title: true,
-          description: true,
-          markdown: true,
-          tags: true,
           isPublic: true,
-          publishedAt: true,
           updatedAt: true,
+          publishedAt: true,
         },
       });
 
-      if (usedStoredNames.length > 0) {
-        await tx.storageFile.updateMany({
-          where: {
-            postId,
-            usage: StorageFileUsage.CONTENT,
-            status: StorageFileStatus.TEMP,
-            storedName: {
-              in: usedStoredNames,
-            },
-          },
-          data: {
-            status: StorageFileStatus.ATTACHED,
-            attachedAt,
-          },
-        });
-      }
+      await this.syncContentFileStates({
+        tx,
+        postId,
+        usedContentFileIds,
+        now,
+      });
+      await this.syncThumbnailFileStates({
+        tx,
+        postId,
+        thumbnailId: postPayload.thumbnailId ?? null,
+        now,
+      });
 
-      await tx.storageFile.updateMany({
+      return {
+        id: post.id,
+        status: post.status,
+        isPublic: post.isPublic,
+        updatedAt: post.updatedAt.toISOString(),
+        publishedAt: post.publishedAt?.toISOString() ?? null,
+      };
+    });
+  }
+
+  private async assertReferencedFilesAreValid(params: {
+    tx: Prisma.TransactionClient;
+    postId: number;
+    thumbnailId: number | null;
+    contentFileIds: number[];
+  }) {
+    const referencedFileIds = [
+      ...params.contentFileIds,
+      ...(params.thumbnailId === null ? [] : [params.thumbnailId]),
+    ];
+
+    if (referencedFileIds.length === 0) {
+      return;
+    }
+
+    const files = await params.tx.storageFile.findMany({
+      where: {
+        id: {
+          in: referencedFileIds,
+        },
+      },
+      select: {
+        id: true,
+        postId: true,
+        usage: true,
+        status: true,
+      },
+    });
+
+    const fileById = new Map(files.map((file) => [file.id, file]));
+
+    for (const fileId of params.contentFileIds) {
+      const file = fileById.get(fileId);
+
+      if (
+        !file ||
+        file.postId !== params.postId ||
+        file.usage !== StorageFileUsage.CONTENT ||
+        file.status === StorageFileStatus.DELETED
+      ) {
+        throw new BadRequestException(`invalid content file: ${fileId}`);
+      }
+    }
+
+    if (params.thumbnailId !== null) {
+      const thumbnailFile = fileById.get(params.thumbnailId);
+
+      if (
+        !thumbnailFile ||
+        thumbnailFile.postId !== params.postId ||
+        thumbnailFile.usage !== StorageFileUsage.THUMBNAIL ||
+        thumbnailFile.status === StorageFileStatus.DELETED
+      ) {
+        throw new BadRequestException(
+          `invalid thumbnail file: ${params.thumbnailId}`,
+        );
+      }
+    }
+  }
+
+  private async syncContentFileStates(params: {
+    tx: Prisma.TransactionClient;
+    postId: number;
+    usedContentFileIds: number[];
+    now: Date;
+  }) {
+    if (params.usedContentFileIds.length > 0) {
+      await params.tx.storageFile.updateMany({
         where: {
-          postId,
+          postId: params.postId,
           usage: StorageFileUsage.CONTENT,
-          status: StorageFileStatus.TEMP,
-          ...(usedStoredNames.length > 0
-            ? {
-                storedName: {
-                  notIn: usedStoredNames,
-                },
-              }
-            : {}),
+          id: {
+            in: params.usedContentFileIds,
+          },
+          status: {
+            in: [
+              StorageFileStatus.TEMP,
+              StorageFileStatus.ATTACHED,
+              StorageFileStatus.ORPHANED,
+            ],
+          },
         },
         data: {
-          status: StorageFileStatus.ORPHANED,
+          status: StorageFileStatus.ATTACHED,
+          attachedAt: params.now,
+          orphanedAt: null,
+          deletedAt: null,
         },
       });
+    }
 
-      if (thumbnailId !== null) {
-        await tx.storageFile.updateMany({
-          where: {
-            id: thumbnailId,
-            postId,
-            usage: StorageFileUsage.THUMBNAIL,
-            status: StorageFileStatus.TEMP,
-          },
-          data: {
-            status: StorageFileStatus.ATTACHED,
-            attachedAt,
-          },
-        });
-      }
-
-      return post;
+    await params.tx.storageFile.updateMany({
+      where: {
+        postId: params.postId,
+        usage: StorageFileUsage.CONTENT,
+        status: {
+          in: [StorageFileStatus.TEMP, StorageFileStatus.ATTACHED],
+        },
+        ...(params.usedContentFileIds.length > 0
+          ? {
+              id: {
+                notIn: params.usedContentFileIds,
+              },
+            }
+          : {}),
+      },
+      data: {
+        status: StorageFileStatus.ORPHANED,
+        orphanedAt: params.now,
+      },
     });
+  }
+
+  private async syncThumbnailFileStates(params: {
+    tx: Prisma.TransactionClient;
+    postId: number;
+    thumbnailId: number | null;
+    now: Date;
+  }) {
+    if (params.thumbnailId !== null) {
+      await params.tx.storageFile.updateMany({
+        where: {
+          id: params.thumbnailId,
+          postId: params.postId,
+          usage: StorageFileUsage.THUMBNAIL,
+          status: {
+            in: [
+              StorageFileStatus.TEMP,
+              StorageFileStatus.ATTACHED,
+              StorageFileStatus.ORPHANED,
+            ],
+          },
+        },
+        data: {
+          status: StorageFileStatus.ATTACHED,
+          attachedAt: params.now,
+          orphanedAt: null,
+          deletedAt: null,
+        },
+      });
+    }
+
+    await params.tx.storageFile.updateMany({
+      where: {
+        postId: params.postId,
+        usage: StorageFileUsage.THUMBNAIL,
+        status: {
+          in: [StorageFileStatus.TEMP, StorageFileStatus.ATTACHED],
+        },
+        ...(params.thumbnailId === null
+          ? {}
+          : {
+              id: {
+                not: params.thumbnailId,
+              },
+            }),
+      },
+      data: {
+        status: StorageFileStatus.ORPHANED,
+        orphanedAt: params.now,
+      },
+    });
+  }
+
+  private assertEditablePostAccess(params: {
+    postAuthorId: number;
+    user: {
+      id: number;
+      role: UserRole;
+    } | null;
+  }) {
+    if (!params.user) {
+      throw new NotFoundException('user not found');
+    }
+
+    if (
+      params.user.id !== params.postAuthorId &&
+      params.user.role !== UserRole.ADMIN
+    ) {
+      throw new ForbiddenException('forbidden');
+    }
   }
 
   private parsePostListQuery(query: GetPostListQuery) {
@@ -438,7 +623,6 @@ export class PostService {
       limit,
       cursor: query.cursor?.trim() || null,
       query: normalizedQuery,
-
       tag: normalizedTag,
     };
   }
@@ -503,12 +687,13 @@ export class PostService {
         ],
       };
 
-      const cursorFilter: Prisma.PostWhereInput = {
-        OR: [olderUpdatedAtFilter, sameUpdatedAtOlderIdFilter],
-      };
-
       return {
-        AND: [where, cursorFilter],
+        AND: [
+          where,
+          {
+            OR: [olderUpdatedAtFilter, sameUpdatedAtOlderIdFilter],
+          },
+        ],
       };
     }
 
@@ -658,12 +843,13 @@ export class PostService {
         ],
       };
 
-      const cursorFilter: Prisma.PostWhereInput = {
-        OR: [olderUpdatedAtFilter, sameUpdatedAtOlderIdFilter],
-      };
-
       return {
-        AND: [where, cursorFilter],
+        AND: [
+          where,
+          {
+            OR: [olderUpdatedAtFilter, sameUpdatedAtOlderIdFilter],
+          },
+        ],
       };
     }
 

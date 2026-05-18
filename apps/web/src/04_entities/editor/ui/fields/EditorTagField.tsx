@@ -4,8 +4,10 @@ import { useId } from "react"
 import { EDITOR_FORM_NAME } from "../../model/EditorForm.const"
 interface EditorTagFieldProps {
   initTags?: string[]
+  value?: string[]
+  onChange?: (value: string[]) => void
 }
-const EditorTagField = ({ initTags }: EditorTagFieldProps) => {
+const EditorTagField = ({ initTags, value, onChange }: EditorTagFieldProps) => {
   const id = useId()
   return (
     <Field>
@@ -16,6 +18,8 @@ const EditorTagField = ({ initTags }: EditorTagFieldProps) => {
         id={`${EDITOR_FORM_NAME.TAG}-${id}`}
         name={EDITOR_FORM_NAME.TAG}
         defaultValue={initTags}
+        value={value}
+        onChange={onChange}
       />
     </Field>
   )

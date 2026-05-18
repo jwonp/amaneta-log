@@ -4,9 +4,13 @@ import { useId } from "react"
 import { EDITOR_FORM_NAME } from "../../model/EditorForm.const"
 interface EditorVisibilityFieldProps {
   initVisibility?: boolean
+  value?: boolean
+  onChange?: (value: boolean) => void
 }
 const EditorVisibilityField = ({
   initVisibility,
+  value,
+  onChange,
 }: EditorVisibilityFieldProps) => {
   const id = useId()
   return (
@@ -22,6 +26,8 @@ const EditorVisibilityField = ({
           off: "비공개",
         }}
         defaultValue={!!initVisibility}
+        value={value}
+        onChange={onChange}
       />
     </Field>
   )

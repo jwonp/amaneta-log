@@ -54,7 +54,8 @@ export default async function RootLayout({
                     {session ? (
                       <div className="flex h-full w-fit gap-2 px-4">
                         <HeaderMenuItem label={"Blog"} linkTo={"/posts"} />
-                        {session.user.role === "USER" ? (
+                        {session.user.role === "USER" ||
+                        session.user.role === "ADMIN" ? (
                           <HeaderMenuItem label={"Editor"} linkTo={"/editor"} />
                         ) : null}
                         {session.user.role === "ADMIN" ? (
