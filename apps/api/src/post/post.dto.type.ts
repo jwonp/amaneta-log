@@ -23,6 +23,61 @@ export interface GetEditablePostByIdResponse {
   files: StorageFile[];
 }
 
+export type EditablePostListVisibility = 'all' | 'public' | 'draft';
+
+export interface GetEditablePostListQuery {
+  limit?: string;
+  cursor?: string;
+  query?: string;
+  visibility?: string;
+  tag?: string;
+}
+export interface GetPostListQuery {
+  limit?: string;
+  cursor?: string;
+  query?: string;
+  tag?: string;
+}
+
+export interface EditablePostListItemDto {
+  id: number;
+  isPublic: boolean;
+  tags: string[];
+  title: string;
+  description: string | null;
+  updatedAt: string;
+  author: string;
+  thumbnailFileId: number | null;
+}
+
+export type PostListItemDto = Omit<EditablePostListItemDto, 'isPublic'>;
+
+export interface GetEditablePostListResponse {
+  items: EditablePostListItemDto[];
+  pageInfo: {
+    nextCursor: string | null;
+    hasNextPage: boolean;
+  };
+  appliedFilters: {
+    query: string | null;
+    visibility: EditablePostListVisibility;
+    tag: string | null;
+    limit: number;
+  };
+}
+export interface GetPostListResponse {
+  items: PostListItemDto[];
+  pageInfo: {
+    nextCursor: string | null;
+    hasNextPage: boolean;
+  };
+  appliedFilters: {
+    query: string | null;
+    tag: string | null;
+    limit: number;
+  };
+}
+
 export interface SavePostRequset {
   title: string;
   description?: string | null;

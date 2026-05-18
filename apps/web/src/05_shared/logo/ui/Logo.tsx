@@ -1,24 +1,31 @@
 "use client"
-import { useTheme } from "next-themes"
+
 import Image from "next/image"
+import Link from "next/link"
 import LogoSvg from "@/public/logo.svg"
 import LogoWhiteSvg from "@/public/logo-white.svg"
-import { useEffect, useState } from "react"
 
 const Logo = () => {
   return (
-    <div className="flex h-full w-fit px-4">
+    <Link
+      href="/"
+      aria-label="Amaneta Log home"
+      className="flex h-14 items-center px-4 transition-opacity hover:opacity-80"
+    >
+      <span className="sr-only">Amaneta Log</span>
       <Image
-        className="my-auto h-auto w-auto dark:hidden"
+        className="block h-6 w-auto dark:hidden"
         src={LogoSvg}
-        alt=""
+        alt="Amaneta Log"
+        priority
       />
       <Image
-        className="my-auto hidden h-auto w-auto dark:block"
+        className="hidden h-6 w-auto dark:block"
         src={LogoWhiteSvg}
-        alt=""
+        alt="Amaneta Log"
+        priority
       />
-    </div>
+    </Link>
   )
 }
 export default Logo

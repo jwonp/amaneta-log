@@ -24,6 +24,7 @@ interface ImagePreviewInputProps {
   label?: string
   description?: string
   defaultPreviewSrc?: string
+  value?: string | number | null
   onChange?: (file: File | null) => void
   ref?: Ref<ImagePreviewInputRef>
 }
@@ -33,6 +34,7 @@ const ImagePreviewInput = ({
   name,
   label = "대표 이미지",
   defaultPreviewSrc,
+  value,
   onChange,
   ref,
 }: ImagePreviewInputProps) => {
@@ -146,10 +148,11 @@ const ImagePreviewInput = ({
         </div>
       </label>
 
+      <Input type="hidden" name={name} value={value ?? ""} readOnly />
+
       <Input
         ref={inputRef}
         id={id}
-        name={name}
         type="file"
         accept="image/*"
         className="sr-only"

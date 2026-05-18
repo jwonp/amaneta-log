@@ -2,9 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -13,10 +16,14 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { PostService } from './post.service';
 import type {
+  GetEditablePostListQuery,
+  GetEditablePostListResponse,
   GetEditablePostByIdResponse,
   GetPostByIdResponse,
   GetPostDraftIdResponse,
   SavePostRequset,
+  GetPostListQuery,
+  GetPostListResponse,
 } from './post.dto.type';
 import type { AuthenticatedRequest } from '../auth/auth.type';
 
@@ -24,16 +31,27 @@ import type { AuthenticatedRequest } from '../auth/auth.type';
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-  @Post('draft')
+  @Get()
+  async getPosts(
+    @Query() query: GetPostListQuery,
+  ): Promise<GetPostListResponse> {
+    return await this.postService.getPosts(query);
+  }
+
+  @Get('editable')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async getPostDraftId(
+  async getEditablePosts(
     @Req() request: AuthenticatedRequest,
-  ): Promise<GetPostDraftIdResponse> {
-    return await this.postService.getPostDraftId({
-      username: request.user.username,
-      provider: request.user.provider,
-    });
+    @Query() query: GetEditablePostListQuery,
+  ): Promise<GetEditablePostListResponse> {
+    return await this.postService.getEditablePosts(
+      {
+        username: request.user.username,
+        provider: request.user.provider,
+      },
+      query,
+    );
   }
 
   @Get(':postId')
@@ -47,14 +65,31 @@ export class PostController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   async getEditablePostById(
+    @Req() request: AuthenticatedRequest,
     @Param('postId') postId: string,
   ): Promise<GetEditablePostByIdResponse> {
-    return await this.postService.getEditablePostById(Number(postId));
+    return await this.postService.getEditablePostById(Number(postId), {
+      username: request.user.username,
+      provider: request.user.provider,
+    });
+  }
+
+  @Post('draft')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getPostDraftId(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<GetPostDraftIdResponse> {
+    return await this.postService.getPostDraftId({
+      username: request.user.username,
+      provider: request.user.provider,
+    });
   }
 
   @Patch(':postId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
   async savePost(
     @Param('postId') postId: string,
     @Body() body: SavePostRequset,

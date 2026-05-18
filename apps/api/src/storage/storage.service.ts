@@ -6,24 +6,31 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  GetObjectCommand,
   HeadBucketCommand,
   PutObjectCommand,
   S3Client,
+  type GetObjectCommandOutput,
 } from '@aws-sdk/client-s3';
+
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { S3_CLIENT } from './s3.provider';
 import {
+  PostStatus,
   StorageFileKind,
   StorageFileStatus,
   StorageFileUsage,
-} from '@/generated/prisma/client.cjs';
+  UserProvider,
+  UserRole,
+} from '../../generated/prisma/client.cjs';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
   UploadPostFileParams,
   UploadPostFileResponse,
 } from './storage.type';
+import { Readable } from 'node:stream';
 
 @Injectable()
 export class StorageService {
@@ -92,21 +99,181 @@ export class StorageService {
       publicUrl,
     };
   }
-
-  private async assertWritablePost(params: UploadPostFileParams) {
-    const post = await this.prisma.post.findUnique({
+  async getFile(postId: number, fileId: number) {
+    const file = await this.prisma.storageFile.findUnique({
       where: {
-        id: params.postId,
+        id: fileId,
       },
       select: {
-        author: {
-          select: {
-            username: true,
-            provider: true,
-          },
-        },
+        postId: true,
+        status: true,
+        usage: true,
+        storedName: true,
+        mimeType: true,
+        size: true,
+        updatedAt: true,
       },
     });
+
+    if (!file || file.status !== StorageFileStatus.ATTACHED) {
+      throw new NotFoundException('file not found');
+    }
+
+    if (file.postId !== postId) {
+      throw new BadRequestException('invalid post file');
+    }
+
+    const post = await this.prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+      select: {
+        isPublic: true,
+        status: true,
+      },
+    });
+
+    if (!post || post.status !== PostStatus.PUBLISHED || !post.isPublic) {
+      throw new NotFoundException('file not found');
+    }
+
+    const bucket = this.config.getOrThrow<string>('MINIO_BUCKET');
+
+    const objectKey = this.createPostFileObjectKey({
+      postId,
+      usage: file.usage,
+      storedName: file.storedName,
+    });
+
+    const fileObject = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: objectKey,
+      }),
+    );
+
+    return {
+      stream: this.toReadableStream(fileObject.Body),
+      mimeType: file.mimeType,
+      size: file.size,
+      cacheControl: this.createFileCacheControl({
+        fileStatus: file.status,
+        postStatus: post.status,
+        isPublic: post.isPublic,
+      }),
+      etag: this.createStorageFileETag({
+        fileId,
+        size: file.size,
+        updatedAt: file.updatedAt,
+      }),
+    };
+  }
+
+  async getEditableFile(
+    postId: number,
+    fileId: number,
+    user: {
+      username: string;
+      provider: UserProvider;
+      role: UserRole;
+    },
+  ) {
+    const file = await this.prisma.storageFile.findUnique({
+      where: {
+        id: fileId,
+      },
+      select: {
+        postId: true,
+        status: true,
+        usage: true,
+        storedName: true,
+        mimeType: true,
+        size: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!file || file.status !== StorageFileStatus.ATTACHED) {
+      throw new NotFoundException('file not found');
+    }
+
+    if (file.postId !== postId) {
+      throw new BadRequestException('invalid post file');
+    }
+
+    await this.assertReadableEditablePost({
+      postId,
+      user,
+    });
+
+    const bucket = this.config.getOrThrow<string>('MINIO_BUCKET');
+    const objectKey = this.createPostFileObjectKey({
+      postId,
+      usage: file.usage,
+      storedName: file.storedName,
+    });
+    const fileObject = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: objectKey,
+      }),
+    );
+
+    return {
+      stream: this.toReadableStream(fileObject.Body),
+      mimeType: file.mimeType,
+      size: file.size,
+      cacheControl: 'private, no-store',
+      etag: this.createStorageFileETag({
+        fileId,
+        size: file.size,
+        updatedAt: file.updatedAt,
+      }),
+    };
+  }
+
+  private toReadableStream(body: GetObjectCommandOutput['Body']) {
+    if (!body) {
+      throw new NotFoundException('file object not found');
+    }
+
+    if (body instanceof Readable) {
+      return body;
+    }
+
+    throw new Error('unsupported MinIO file stream type');
+  }
+
+  private createFileCacheControl(params: {
+    fileStatus: StorageFileStatus;
+    postStatus: PostStatus;
+    isPublic: boolean;
+  }) {
+    if (
+      params.fileStatus === StorageFileStatus.ATTACHED &&
+      params.postStatus === PostStatus.PUBLISHED &&
+      params.isPublic
+    ) {
+      return 'public, max-age=31536000, immutable';
+    }
+
+    if (params.fileStatus === StorageFileStatus.TEMP) {
+      return 'private, max-age=300';
+    }
+
+    return 'private, no-store';
+  }
+
+  private createStorageFileETag(params: {
+    fileId: number;
+    size: number;
+    updatedAt: Date;
+  }) {
+    return `"${params.fileId}-${params.size}-${params.updatedAt.getTime()}"`;
+  }
+
+  private async assertWritablePost(params: UploadPostFileParams) {
+    const post = await this.findPostAuthor(params.postId);
 
     if (!post) {
       throw new NotFoundException('post not found');
@@ -119,6 +286,47 @@ export class StorageService {
     if (!isAuthor && params.user.role !== 'ADMIN') {
       throw new ForbiddenException('forbidden');
     }
+  }
+
+  private async assertReadableEditablePost(params: {
+    postId: number;
+    user: {
+      username: string;
+      provider: UserProvider;
+      role: UserRole;
+    };
+  }) {
+    const post = await this.findPostAuthor(params.postId);
+
+    if (!post) {
+      throw new NotFoundException('post not found');
+    }
+
+    const isAuthor =
+      post.author.username === params.user.username &&
+      post.author.provider === params.user.provider;
+
+    if (!isAuthor && params.user.role !== 'ADMIN') {
+      throw new ForbiddenException('forbidden');
+    }
+  }
+
+  private async findPostAuthor(postId: number) {
+    const post = await this.prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+      select: {
+        author: {
+          select: {
+            username: true,
+            provider: true,
+          },
+        },
+      },
+    });
+
+    return post;
   }
 
   private parseUsage(usage: StorageFileUsage) {

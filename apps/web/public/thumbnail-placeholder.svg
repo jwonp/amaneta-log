@@ -1,0 +1,104 @@
+<svg
+  width="1600"
+  height="900"
+  viewBox="0 0 1600 900"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#F4F8FF" />
+
+  <!-- Very subtle inner panel tint -->
+  <rect
+    x="1"
+    y="1"
+    width="1598"
+    height="898"
+    fill="url(#bgGradient)"
+  />
+
+  <!-- Document icon -->
+  <g transform="translate(700 270) scale(0.86 1)" stroke="#9DB8DC" stroke-width="7" stroke-linejoin="round">
+    <!-- Document outline -->
+    <path
+      d="
+        M40 0
+        H150
+        L230 80
+        V230
+        C230 252 212 270 190 270
+        H40
+        C18 270 0 252 0 230
+        V40
+        C0 18 18 0 40 0
+        Z
+      "
+      fill="none"
+    />
+
+    <!-- Folded corner -->
+    <path
+      d="
+        M150 0
+        V55
+        C150 69 161 80 175 80
+        H230
+      "
+      fill="#D8E5F6"
+      stroke="#9DB8DC"
+    />
+
+    <!-- L letter -->
+    <text
+      x="115"
+      y="190"
+      text-anchor="middle"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="116"
+      font-weight="700"
+      fill="#9DB8DC"
+      stroke="none"
+    >
+      L
+    </text>
+  </g>
+
+  <!-- Brand text -->
+  <text
+    x="800"
+    y="615"
+    text-anchor="middle"
+    font-family="Inter, Arial, sans-serif"
+    font-size="38"
+    font-weight="500"
+    letter-spacing="12"
+    fill="#9DB8DC"
+  >
+    AMANETA LOG
+  </text>
+
+  <!-- Divider -->
+  <line
+    x1="740"
+    y1="666"
+    x2="860"
+    y2="666"
+    stroke="#B8CBE6"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <defs>
+    <linearGradient
+      id="bgGradient"
+      x1="800"
+      y1="0"
+      x2="800"
+      y2="900"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#F7FAFF" />
+      <stop offset="1" stop-color="#EEF5FF" />
+    </linearGradient>
+  </defs>
+</svg>

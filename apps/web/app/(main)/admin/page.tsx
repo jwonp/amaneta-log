@@ -1,10 +1,6 @@
-import { Label } from "@packages/ui/src/components/label"
+import AdminView from "@/src/01_views/admin/ui/AdminView"
 
 const AdminPage = () => {
-  return (
-    <div>
-      <Label>{"admin page"}</Label>
-    </div>
-  )
+  return <AdminView />
 }
 export default AdminPage

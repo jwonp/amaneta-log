@@ -1,0 +1,6 @@
+export const POST_STATUS = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED",
+  ARCHIVED: "ARCHIVED",
+  DELETED: "DELETED",
+} as const

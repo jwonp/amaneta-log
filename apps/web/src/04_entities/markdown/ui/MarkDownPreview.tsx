@@ -17,9 +17,9 @@ const MarkDownPreview = ({ previewHeight, markdown }: MarkDownPreviewProps) => {
           "--preview-height": previewHeight ? `${previewHeight}px` : "auto",
         } as CSSProperties
       }
-      className="h-fit min-h-130 w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto rounded-md bg-background p-4 md:h-(--preview-height) md:p-6"
+      className="h-fit min-h-130 w-full max-w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-md bg-background p-6 md:h-(--preview-height)"
     >
-      <article className="max-w-full overflow-hidden text-sm leading-7 break-words">
+      <article className="max-w-full overflow-hidden text-sm leading-7 wrap-break-word">
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkBreaks]}
           components={{

@@ -17,10 +17,10 @@ import { PostModule } from './post/post.module';
       envFilePath: ['.env'],
     }),
     JwtModule.registerAsync({
+      global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        global: true,
         secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         signOptions: {
           expiresIn: config.getOrThrow('JWT_ACCESS_EXPIRES_IN') ?? '1H',

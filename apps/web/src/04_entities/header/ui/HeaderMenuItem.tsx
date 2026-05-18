@@ -10,7 +10,6 @@ interface HeaderMenuItemProps {
 const HeaderMenuItem = ({ label, linkTo }: HeaderMenuItemProps) => {
   const pathname = usePathname()
   const router = useRouter()
-  console.log({ pathname })
   return (
     <NavigationMenuItem className="h-14">
       <HeaderMenuButton
