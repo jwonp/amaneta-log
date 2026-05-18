@@ -5,6 +5,12 @@ import {
   User,
 } from '@/generated/prisma/client.cjs';
 
+export enum SavePostMode {
+  AUTO = 'AUTO',
+  DRAFT = 'DRAFT',
+  PUBLISH = 'PUBLISH',
+}
+
 export interface GetPostDraftIdResponse {
   id: number;
   status: PostStatus;
@@ -26,14 +32,15 @@ export interface GetEditablePostByIdResponse {
 export type EditablePostListVisibility = 'all' | 'public' | 'draft';
 
 export interface GetEditablePostListQuery {
-  limit?: string;
+  limit?: number;
   cursor?: string;
   query?: string;
-  visibility?: string;
+  visibility?: EditablePostListVisibility;
   tag?: string;
 }
+
 export interface GetPostListQuery {
-  limit?: string;
+  limit?: number;
   cursor?: string;
   query?: string;
   tag?: string;
@@ -84,6 +91,7 @@ export interface SavePostRequset {
   markdown: string;
   tags: string[];
   isPublic: boolean;
+  saveMode: SavePostMode;
   thumbnailId?: number | null;
 }
 
