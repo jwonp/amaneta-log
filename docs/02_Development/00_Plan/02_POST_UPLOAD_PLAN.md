@@ -1,6 +1,13 @@
-# Post 업로드 구현 TODO
+# Post 업로드 구현 상태와 남은 작업
 
-이 문서는 `amaneta-log`의 게시물 작성, 썸네일 업로드, 본문 첨부파일 상태 전이, 그리고 고아 파일 정리 크론까지 포함한 실행 TODO를 정리한다.
+이 문서는 `amaneta-log`의 게시물 작성, 썸네일 업로드, 본문 첨부파일 상태 전이, 그리고 고아 파일 정리 크론의 현재 구현 상태와 남은 작업을 정리한다.
+
+## 0. 현재 상태 요약
+
+- 초안 Post 생성, 본문/썸네일 업로드, 공개/편집용 파일 프록시, 첨부 상태 전이, orphan cleanup cron이 구현돼 있다.
+- 본문과 썸네일 파일은 저장 시 `TEMP -> ATTACHED`, 미참조 파일은 `ORPHANED`, cleanup 대상은 `DELETED`로 전이된다.
+- autosave는 발행 상태를 직접 바꾸지 않고, 수동 draft 저장과 publish 저장 의도를 payload로 구분한다.
+- 남은 문서는 구현 완료된 항목과 후속 보강 항목을 구분해서 읽는 것이 맞다.
 
 ## 1. 목표 플로우
 
@@ -72,36 +79,25 @@ model Post {
 }
 ```
 
-### 2.4 StorageFile 메타데이터 보강 권장
+### 2.4 StorageFile 메타데이터 상태
 
-고아 정리 크론을 안정적으로 운영하려면 아래 필드 중 최소 하나는 추가하는 편이 좋다.
+`orphanedAt`, `deletedAt`, `attachedAt`이 이미 모델에 포함돼 있고, cleanup cron은 `orphanedAt` 기준으로 대상을 정리한다.
 
-- `orphanedAt DateTime?`
-- `deletedAt DateTime?`
+## 3. 백엔드 작업 상태
 
-이유:
-
-- 현재는 `status=ORPHANED`와 `updatedAt`만으로 정리 시점을 추론해야 한다.
-- 추후 메타데이터 수정이나 재상태 전이가 생기면 `updatedAt`만으로 TTL 판단이 흔들릴 수 있다.
-- `orphanedAt`이 있으면 "언제부터 고아였는가"를 명확하게 계산할 수 있다.
-
-## 3. 백엔드 작업
-
-1. `POST /posts/draft`에서 초안 Post를 먼저 만든다.
-2. `POST /storage/:postId/files`에서 업로드 파일을 `TEMP`로 저장한다.
-3. `PATCH /posts/:postId` 저장 시 markdown에서 실제 사용된 첨부파일을 추출한다.
-4. 사용된 본문 파일은 `ATTACHED` 전환한다.
-5. 이번 저장 payload에서 빠진 본문 파일은 `TEMP`뿐 아니라 기존 `ATTACHED`도 `ORPHANED`로 전환한다.
-6. 썸네일 파일은 `thumbnailId` 기준으로 `ATTACHED` 전환한다.
-7. 이번 저장에서 선택되지 않은 기존 썸네일은 `ORPHANED`로 전환한다.
-8. 발행 저장이면 `status=PUBLISHED`, 임시 저장이면 `status=DRAFT`로 유지한다.
-9. 별도 크론에서 `ORPHANED` 파일을 일정 주기로 스토리지와 DB에서 정리한다.
+1. `POST /posts/draft`는 구현 완료 상태다.
+2. `POST /storage/posts/:postId/files`는 업로드 파일을 `TEMP`로 저장하고, DB 저장 실패 시 스토리지 객체를 보상 삭제한다.
+3. `PATCH /posts/:postId`는 markdown 기준 사용 파일을 추출한다.
+4. 사용된 본문 파일은 `ATTACHED`, 미사용 본문 파일은 `ORPHANED`로 전환한다.
+5. 썸네일도 현재 선택된 파일만 `ATTACHED`, 나머지는 `ORPHANED`로 전환한다.
+6. autosave는 기존 발행 상태를 보존하고, 수동 draft 저장과 publish 저장만 상태를 명시적으로 변경한다.
+7. orphan cleanup cron은 `ORPHANED` 파일을 주기적으로 스토리지와 DB에서 정리한다.
 
 ## 4. 프론트엔드 작업
 
 1. 새 글 작성 시 먼저 draft id를 발급받고 `/editor/edit/:postId`로 이동한다.
 2. 썸네일 업로드는 `usage=THUMBNAIL`, 본문 첨부는 `usage=CONTENT`로 분리한다.
-3. 저장 payload에는 `title`, `description`, `markdown`, `tags`, `isPublic`, `thumbnailId`를 포함한다.
+3. 저장 payload에는 `title`, `description`, `markdown`, `tags`, `isPublic`, `saveMode`, `thumbnailId`를 포함한다.
 4. 업로드 성공 직후 에디터는 응답 받은 파일 id를 상태로 유지한다.
 5. 본문 첨부 업로드도 실제로 연결해, markdown에 삽입되는 URL 규칙을 백엔드 parser와 일치시킨다.
 6. 사용자가 입력을 멈추면 같은 draft 저장 payload로 자동저장을 실행한다.
@@ -274,14 +270,14 @@ markdown 이미지 삽입을 프론트에 붙이려면 아래 변경이 같이 �
 
 목표:
 
-- 사용자가 임시저장 버튼을 누르지 않아도 편집 중 변경이 draft로 주기적으로 저장된다.
-- 자동저장은 발행 저장과 분리되고, 항상 `DRAFT` 기준으로만 동작한다.
+- 사용자가 임시저장 버튼을 누르지 않아도 편집 중 변경이 주기적으로 저장된다.
+- 자동저장은 발행 저장과 분리되고, 기존 발행 상태를 임의로 변경하지 않는다.
 
 정책:
 
-- 자동저장 payload는 임시저장과 동일한 shape를 사용한다.
-- 자동저장 시 `isPublic`은 항상 `false`로 저장한다.
-- 사용자가 발행 상태 토글을 켜 두었더라도 자동저장만으로는 `PUBLISHED`로 바뀌지 않는다.
+- 자동저장 payload는 `saveMode=AUTO`로 전송한다.
+- autosave는 제목/본문/태그/썸네일 같은 편집 내용만 저장하고, `status`, `isPublic`, `publishedAt`은 기존 값을 유지한다.
+- 수동 임시저장은 `saveMode=DRAFT`, 수동 발행 저장은 `saveMode=PUBLISH`로 구분한다.
 - 발행은 명시적인 수동 저장 버튼으로만 일어난다.
 
 이유:
@@ -289,14 +285,9 @@ markdown 이미지 삽입을 프론트에 붙이려면 아래 변경이 같이 �
 - 자동저장은 "작업 유실 방지" 책임만 가져야 한다.
 - 입력 도중 visibility 상태까지 따라가며 publish되면 의도치 않은 공개 리스크가 생긴다.
 
-1차 결정:
+현재 결정:
 
-- autosave는 프론트에서 `isPublic=false`를 강제한다.
-
-보완 메모:
-
-- 1차 구현은 프론트 강제로 진행해도 된다.
-- 다만 장기적으로는 백엔드도 autosave 요청이 publish로 승격되지 않도록 보호하는 편이 더 안전하다.
+- 프론트와 백엔드가 모두 `saveMode`를 해석해 autosave가 발행본을 draft로 되돌리지 않도록 보호한다.
 
 ### 4.9 자동저장 트리거 규칙
 

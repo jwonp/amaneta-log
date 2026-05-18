@@ -82,6 +82,7 @@ export interface SavePostRequset {
   markdown: string
   tags: string[]
   isPublic: boolean
+  saveMode: "AUTO" | "DRAFT" | "PUBLISH"
   thumbnailId?: number | null
 }
 

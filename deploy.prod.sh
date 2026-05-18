@@ -68,7 +68,7 @@ echo "MinIO bucket is ready: ${MINIO_BUCKET}"
 
 echo ""
 echo "6. Run Prisma migration"
-${COMPOSE} run --rm api sh -c 'echo "DATABASE_URL is configured for Prisma migration" && test -n "$DATABASE_URL" && ./node_modules/.bin/prisma migrate deploy'
+${COMPOSE} run --rm --no-deps api sh -c 'echo "DATABASE_URL is configured for Prisma migration" && test -n "$DATABASE_URL" && ./node_modules/.bin/prisma migrate deploy'
 
 echo ""
 echo "7. Start application services"

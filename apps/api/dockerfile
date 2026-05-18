@@ -60,4 +60,4 @@ ENV API_PORT=${API_PORT}
 
 EXPOSE ${API_PORT}
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main.js"]

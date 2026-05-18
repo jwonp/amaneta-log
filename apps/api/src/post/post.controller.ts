@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -27,6 +28,11 @@ import type {
   SavePostResponse,
 } from './post.dto.type';
 import type { AuthenticatedRequest } from '../auth/auth.type';
+import {
+  ParseGetEditablePostListQueryPipe,
+  ParseGetPostListQueryPipe,
+  ParseSavePostRequestPipe,
+} from './post.validation';
 
 @Controller('posts')
 export class PostController {
@@ -34,7 +40,7 @@ export class PostController {
 
   @Get()
   async getPosts(
-    @Query() query: GetPostListQuery,
+    @Query(new ParseGetPostListQueryPipe()) query: GetPostListQuery,
   ): Promise<GetPostListResponse> {
     return await this.postService.getPosts(query);
   }
@@ -44,7 +50,8 @@ export class PostController {
   @Roles('ADMIN')
   async getEditablePosts(
     @Req() request: AuthenticatedRequest,
-    @Query() query: GetEditablePostListQuery,
+    @Query(new ParseGetEditablePostListQueryPipe())
+    query: GetEditablePostListQuery,
   ): Promise<GetEditablePostListResponse> {
     return await this.postService.getEditablePosts(
       {
@@ -57,9 +64,9 @@ export class PostController {
 
   @Get(':postId')
   async getPostById(
-    @Param('postId') postId: string,
+    @Param('postId', ParseIntPipe) postId: number,
   ): Promise<GetPostByIdResponse> {
-    return await this.postService.getPostById(Number(postId));
+    return await this.postService.getPostById(postId);
   }
 
   @Get(':postId/edit')
@@ -67,9 +74,9 @@ export class PostController {
   @Roles('ADMIN')
   async getEditablePostById(
     @Req() request: AuthenticatedRequest,
-    @Param('postId') postId: string,
+    @Param('postId', ParseIntPipe) postId: number,
   ): Promise<GetEditablePostByIdResponse> {
-    return await this.postService.getEditablePostById(Number(postId), {
+    return await this.postService.getEditablePostById(postId, {
       username: request.user.username,
       provider: request.user.provider,
     });
@@ -93,9 +100,9 @@ export class PostController {
   @HttpCode(HttpStatus.OK)
   async savePost(
     @Req() request: AuthenticatedRequest,
-    @Param('postId') postId: string,
-    @Body() body: SavePostRequset,
+    @Param('postId', ParseIntPipe) postId: number,
+    @Body(new ParseSavePostRequestPipe()) body: SavePostRequset,
   ): Promise<SavePostResponse> {
-    return await this.postService.savePost(Number(postId), body, request.user);
+    return await this.postService.savePost(postId, body, request.user);
   }
 }

@@ -585,7 +585,9 @@ const createPayload = (
   description: state.description || null,
   markdown: state.markdown,
   tags: [...state.tags],
-  isPublic: mode === "manual" ? state.isPublic : false,
+  isPublic: state.isPublic,
+  saveMode:
+    mode === "auto" ? "AUTO" : mode === "draft" ? "DRAFT" : state.isPublic ? "PUBLISH" : "DRAFT",
   thumbnailId: state.thumbnailId,
 })
 

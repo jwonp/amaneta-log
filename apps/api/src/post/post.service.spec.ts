@@ -6,6 +6,7 @@ import {
   StorageFileUsage,
 } from '../../generated/prisma/client.cjs';
 import { PostService } from './post.service';
+import { SavePostMode } from './post.dto.type';
 
 describe('PostService', () => {
   it('orphans removed content files and replaced thumbnails while attaching referenced files', async () => {
@@ -69,6 +70,7 @@ describe('PostService', () => {
         markdown: '![cover](/api/storage/1/files/101)',
         tags: ['tag'],
         isPublic: false,
+        saveMode: SavePostMode.DRAFT,
         thumbnailId: 202,
       },
       {
@@ -172,6 +174,7 @@ describe('PostService', () => {
           markdown: '',
           tags: [],
           isPublic: false,
+          saveMode: SavePostMode.DRAFT,
         },
         {
           username: 'user',
@@ -180,5 +183,131 @@ describe('PostService', () => {
         },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('preserves published status and publishedAt during autosave', async () => {
+    const publishedAt = new Date('2026-05-17T10:00:00.000Z');
+    const tx = {
+      post: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 1,
+          authorId: 10,
+          isPublic: true,
+          status: PostStatus.PUBLISHED,
+          publishedAt,
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 1,
+          status: PostStatus.PUBLISHED,
+          isPublic: true,
+          updatedAt: new Date('2026-05-18T12:00:00.000Z'),
+          publishedAt,
+        }),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 10,
+          role: 'ADMIN',
+        }),
+      },
+      storageFile: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+
+    const prismaService = {
+      $transaction: jest.fn(
+        async (
+          callback: (client: typeof tx) => Promise<unknown>,
+        ): Promise<unknown> => await callback(tx),
+      ),
+    };
+    const service = new PostService(prismaService as never);
+
+    const response = await service.savePost(
+      1,
+      {
+        title: 'published',
+        description: 'desc',
+        markdown: 'content',
+        tags: ['tag'],
+        isPublic: false,
+        saveMode: SavePostMode.AUTO,
+        thumbnailId: null,
+      },
+      {
+        username: 'admin',
+        provider: 'CREDENTIALS',
+        role: 'ADMIN',
+      },
+    );
+
+    expect(tx.post.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          isPublic: true,
+          status: undefined,
+          publishedAt,
+        }),
+      }),
+    );
+    expect(response.status).toBe(PostStatus.PUBLISHED);
+    expect(response.isPublic).toBe(true);
+    expect(response.publishedAt).toBe(publishedAt.toISOString());
+  });
+
+  it('excludes non-attached files from public post detail responses', async () => {
+    const prismaService = {
+      post: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 1,
+          title: 'title',
+          description: 'desc',
+          markdown: 'content',
+          tags: ['tag'],
+          createdAt: new Date('2026-05-17T10:00:00.000Z'),
+          updatedAt: new Date('2026-05-18T12:00:00.000Z'),
+          isPublic: true,
+          author: {
+            username: 'author',
+            profileImage: null,
+          },
+          files: [
+            {
+              id: 1,
+              kind: 'IMAGE',
+              storedName: 'attached.png',
+              mimeType: 'image/png',
+              usage: StorageFileUsage.CONTENT,
+              status: StorageFileStatus.ATTACHED,
+            },
+          ],
+        }),
+      },
+    };
+    const service = new PostService(prismaService as never);
+
+    const response = await service.getPostById(1);
+
+    expect(prismaService.post.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          files: {
+            where: {
+              status: StorageFileStatus.ATTACHED,
+            },
+          },
+        }),
+      }),
+    );
+    expect(response.files).toEqual([
+      {
+        id: 1,
+        kind: 'IMAGE',
+        storedName: 'attached.png',
+        mimeType: 'image/png',
+      },
+    ]);
   });
 });

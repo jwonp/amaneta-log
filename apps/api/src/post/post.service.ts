@@ -12,6 +12,7 @@ import {
   GetEditablePostByIdResponse,
   GetPostByIdResponse,
   GetPostDraftIdResponse,
+  SavePostMode,
   SavePostRequset,
   GetPostListQuery,
   SavePostResponse,
@@ -235,9 +236,7 @@ export class PostService {
         author: true,
         files: {
           where: {
-            status: {
-              not: StorageFileStatus.DELETED,
-            },
+            status: StorageFileStatus.ATTACHED,
           },
         },
       },
@@ -344,6 +343,8 @@ export class PostService {
         select: {
           id: true,
           authorId: true,
+          isPublic: true,
+          status: true,
           publishedAt: true,
         },
       });
@@ -386,14 +387,22 @@ export class PostService {
           description: postPayload.description,
           markdown: postPayload.markdown,
           tags: postPayload.tags,
-          isPublic: postPayload.isPublic,
-          status: postPayload.isPublic
-            ? PostStatus.PUBLISHED
-            : PostStatus.DRAFT,
+          isPublic: this.resolvePostVisibility({
+            saveMode: postPayload.saveMode,
+            isPublic: postPayload.isPublic,
+            existingIsPublic: existingPost.isPublic,
+          }),
+          status: this.resolvePostStatus({
+            saveMode: postPayload.saveMode,
+            isPublic: postPayload.isPublic,
+          }),
           updatedAt: now,
-          publishedAt: postPayload.isPublic
-            ? (existingPost.publishedAt ?? now)
-            : null,
+          publishedAt: this.resolvePublishedAt({
+            saveMode: postPayload.saveMode,
+            isPublic: postPayload.isPublic,
+            existingPublishedAt: existingPost.publishedAt,
+            now,
+          }),
         },
         select: {
           id: true,
@@ -611,16 +620,11 @@ export class PostService {
   }
 
   private parsePostListQuery(query: GetPostListQuery) {
-    const parsedLimit = Number.parseInt(query.limit ?? '12', 10);
-    const limit = Number.isFinite(parsedLimit)
-      ? Math.min(Math.max(parsedLimit, 1), 50)
-      : 12;
-
     const normalizedQuery = query.query?.trim() || null;
     const normalizedTag = query.tag?.trim() || null;
 
     return {
-      limit,
+      limit: query.limit ?? 12,
       cursor: query.cursor?.trim() || null,
       query: normalizedQuery,
       tag: normalizedTag,
@@ -705,16 +709,12 @@ export class PostService {
   }
 
   private parseEditablePostListQuery(query: GetEditablePostListQuery) {
-    const parsedLimit = Number.parseInt(query.limit ?? '12', 10);
-    const limit = Number.isFinite(parsedLimit)
-      ? Math.min(Math.max(parsedLimit, 1), 50)
-      : 12;
     const visibility = this.parseEditablePostVisibility(query.visibility);
     const normalizedQuery = query.query?.trim() || null;
     const normalizedTag = query.tag?.trim() || null;
 
     return {
-      limit,
+      limit: query.limit ?? 12,
       cursor: query.cursor?.trim() || null,
       query: normalizedQuery,
       visibility,
@@ -723,7 +723,7 @@ export class PostService {
   }
 
   private parseEditablePostVisibility(
-    visibility?: string,
+    visibility?: EditablePostListVisibility,
   ): EditablePostListVisibility {
     if (!visibility || visibility === 'all') {
       return 'all';
@@ -760,6 +760,48 @@ export class PostService {
     } catch {
       throw new BadRequestException('invalid cursor');
     }
+  }
+
+  private resolvePostStatus(params: {
+    saveMode: SavePostMode;
+    isPublic: boolean;
+  }) {
+    if (params.saveMode === SavePostMode.AUTO) {
+      return undefined;
+    }
+
+    return params.saveMode === SavePostMode.PUBLISH && params.isPublic
+      ? PostStatus.PUBLISHED
+      : PostStatus.DRAFT;
+  }
+
+  private resolvePostVisibility(params: {
+    saveMode: SavePostMode;
+    isPublic: boolean;
+    existingIsPublic: boolean;
+  }) {
+    if (params.saveMode === SavePostMode.AUTO) {
+      return params.existingIsPublic;
+    }
+
+    return params.saveMode === SavePostMode.PUBLISH && params.isPublic;
+  }
+
+  private resolvePublishedAt(params: {
+    saveMode: SavePostMode;
+    isPublic: boolean;
+    existingPublishedAt: Date | null;
+    now: Date;
+  }) {
+    if (params.saveMode === SavePostMode.AUTO) {
+      return params.existingPublishedAt;
+    }
+
+    if (params.saveMode === SavePostMode.PUBLISH && params.isPublic) {
+      return params.existingPublishedAt ?? params.now;
+    }
+
+    return null;
   }
 
   private encodeEditablePostListCursor(params: {
