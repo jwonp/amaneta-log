@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
@@ -22,6 +23,7 @@ import { Readable } from 'node:stream';
 import { S3_CLIENT } from './s3.provider';
 import {
   PostStatus,
+  StorageFile,
   StorageFileKind,
   StorageFileStatus,
   StorageFileUsage,
@@ -46,6 +48,8 @@ const DEFAULT_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
 
 @Injectable()
 export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
+
   constructor(
     @Inject(S3_CLIENT)
     private readonly s3: S3Client,
@@ -90,18 +94,38 @@ export class StorageService {
       }),
     );
 
-    const storageFile = await this.prisma.storageFile.create({
-      data: {
-        postId: params.postId,
-        usage,
-        kind,
-        status: StorageFileStatus.TEMP,
-        originalName: params.file.originalname,
-        storedName,
-        mimeType: params.file.mimetype,
-        size: params.file.size,
-      },
-    });
+    let storageFile: StorageFile;
+
+    try {
+      storageFile = await this.prisma.storageFile.create({
+        data: {
+          postId: params.postId,
+          usage,
+          kind,
+          status: StorageFileStatus.TEMP,
+          originalName: params.file.originalname,
+          storedName,
+          mimeType: params.file.mimetype,
+          size: params.file.size,
+        },
+      });
+    } catch (error) {
+      try {
+        await this.s3.send(
+          new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: objectKey,
+          }),
+        );
+      } catch (cleanupError) {
+        this.logger.error(
+          `failed to delete uploaded object after storage metadata create error: ${objectKey}`,
+          cleanupError instanceof Error ? cleanupError.stack : undefined,
+        );
+      }
+
+      throw error;
+    }
 
     return {
       id: storageFile.id,
