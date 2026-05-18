@@ -4,6 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import {
+  createHash,
   randomBytes,
   scrypt as scryptCallback,
   timingSafeEqual,
@@ -11,17 +12,23 @@ import {
 import { promisify } from 'node:util';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { User, UserAuth } from '../../generated/prisma/client.cjs';
+import {
+  User,
+  UserAuth,
+  UserProvider,
+  UserRole,
+} from '../../generated/prisma/client.cjs';
 import { UserService } from '../user/user.service';
 import { PrismaTransactionClient } from '../prisma/prisma.type';
 import { SaveUserResponse } from '../user/user.dto.type';
-import type { AccessTokenPayload } from './auth.type';
-import { JwtService } from '@nestjs/jwt';
-import { LoginResponse } from './auth.dto.type';
+import type { AccessTokenPayload, RefreshTokenPayload } from './auth.type';
+import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
+import { AuthTokenResponse, LoginResponse } from './auth.dto.type';
 
 const scrypt = promisify(scryptCallback);
 const PASSWORD_HASH_LENGTH = 64;
 const PASSWORD_MIN_LENGTH = 8;
+const REFRESH_TOKEN_HASH_ALGORITHM = 'sha256';
 
 @Injectable()
 export class AuthService {
@@ -121,17 +128,15 @@ export class AuthService {
       throw new BadRequestException('user profile not found');
     }
 
-    const payload: AccessTokenPayload = {
-      sub: `${user.username}:${user.provider}`,
+    const tokens = await this.issueTokens({
+      userId: user.id,
       username: user.username,
       provider: user.provider,
       role: user.role,
-    };
-
-    const accessToken = await this.jwt.signAsync(payload);
+    });
 
     return {
-      accessToken,
+      ...tokens,
       user: {
         username: user.username,
         name: user.name,
@@ -141,6 +146,85 @@ export class AuthService {
         createdAt: user.createdAt,
       },
     };
+  }
+
+  async refresh(refreshToken: string): Promise<AuthTokenResponse> {
+    if (!refreshToken?.trim()) {
+      throw new BadRequestException('refresh token is required');
+    }
+
+    let payload: RefreshTokenPayload;
+
+    try {
+      payload = await this.jwt.verifyAsync<RefreshTokenPayload>(refreshToken, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new BadRequestException('invalid refresh token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        username_provider: {
+          username: payload.username,
+          provider: payload.provider,
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        provider: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('user not found');
+    }
+
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
+    const now = new Date();
+    const storedRefreshToken = await this.prisma.refreshToken.findUnique({
+      where: {
+        tokenHash: refreshTokenHash,
+      },
+      select: {
+        id: true,
+        userId: true,
+        revokedAt: true,
+        expiresAt: true,
+      },
+    });
+
+    if (
+      !storedRefreshToken ||
+      storedRefreshToken.userId !== user.id ||
+      storedRefreshToken.revokedAt !== null ||
+      storedRefreshToken.expiresAt <= now
+    ) {
+      throw new BadRequestException('refresh token is not active');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.update({
+        where: {
+          id: storedRefreshToken.id,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return await this.issueTokens(
+        {
+          userId: user.id,
+          username: user.username,
+          provider: user.provider,
+          role: user.role,
+        },
+        tx,
+      );
+    });
   }
 
   public async saveUserAuth(
@@ -214,5 +298,90 @@ export class AuthService {
     }
 
     return timingSafeEqual(storedHashBuffer, derivedKey);
+  }
+
+  private async issueTokens(params: {
+    userId: number;
+    username: string;
+    provider: UserProvider;
+    role: UserRole;
+  }, tx?: PrismaTransactionClient): Promise<AuthTokenResponse> {
+    const client = tx ?? this.prisma;
+    const accessPayload: AccessTokenPayload = {
+      sub: `${params.username}:${params.provider}`,
+      username: params.username,
+      provider: params.provider,
+      role: params.role,
+    };
+    const refreshPayload: RefreshTokenPayload = {
+      sub: `${params.username}:${params.provider}`,
+      username: params.username,
+      provider: params.provider,
+    };
+    const accessExpiresIn =
+      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1h';
+    const refreshExpiresIn =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
+    const accessTokenSignOptions: JwtSignOptions = {
+      secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      expiresIn: accessExpiresIn as JwtSignOptions['expiresIn'],
+    };
+    const refreshTokenSignOptions: JwtSignOptions = {
+      secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn: refreshExpiresIn as JwtSignOptions['expiresIn'],
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwt.signAsync(accessPayload, accessTokenSignOptions),
+      this.jwt.signAsync(refreshPayload, refreshTokenSignOptions),
+    ]);
+
+    const decodedAccessToken = this.jwt.decode(accessToken) as
+      | { exp?: number }
+      | null;
+
+    if (!decodedAccessToken?.exp) {
+      throw new BadRequestException('failed to issue access token');
+    }
+
+    const decodedRefreshToken = this.jwt.decode(refreshToken) as
+      | { exp?: number }
+      | null;
+
+    if (!decodedRefreshToken?.exp) {
+      throw new BadRequestException('failed to issue refresh token');
+    }
+
+    await client.refreshToken.deleteMany({
+      where: {
+        userId: params.userId,
+      },
+    });
+
+    await client.refreshToken.create({
+      data: {
+        userId: params.userId,
+        tokenHash: this.hashRefreshToken(refreshToken),
+        expiresAt: new Date(decodedRefreshToken.exp * 1000),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpiresAt: new Date(
+        decodedAccessToken.exp * 1000,
+      ).toISOString(),
+    };
+  }
+
+  private hashRefreshToken(refreshToken: string) {
+    const pepper =
+      this.config.get<string>('JWT_REFRESH_HASH_PEPPER') ??
+      this.config.getOrThrow<string>('PASSWORD_HASH_PEPPER');
+
+    return createHash(REFRESH_TOKEN_HASH_ALGORITHM)
+      .update(`${refreshToken}${pepper}`)
+      .digest('hex');
   }
 }

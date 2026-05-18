@@ -8,6 +8,12 @@ export interface AccessTokenPayload {
   role: UserRole;
 }
 
+export interface RefreshTokenPayload {
+  sub: string;
+  username: string;
+  provider: UserProvider;
+}
+
 export type JwtUserPayload = {
   sub: string;
   username: string;

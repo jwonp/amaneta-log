@@ -1,8 +1,6 @@
+import AuthLayoutView from "@/src/01_views/auth/ui/AuthLayoutView"
+
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="h-[calc(100svh-60px)] min-h-[calc(100svh-60px)]">
-      {children}
-    </div>
-  )
+  return <AuthLayoutView>{children}</AuthLayoutView>
 }
 export default AuthLayout

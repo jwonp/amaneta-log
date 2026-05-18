@@ -1,17 +1,6 @@
-import LoginForm from "@/src/03_features/auth/ui/LoginForm"
+import LoginView from "@/src/01_views/auth/ui/LoginView"
 
 const LoginPage = () => {
-  return (
-    <div className="item-center flex h-full w-full">
-      <div
-        className="flex min-h-full w-full items-center justify-center"
-        aria-label={"login-form-wrapper"}
-      >
-        <div className="w-full max-w-96">
-          <LoginForm />
-        </div>
-      </div>
-    </div>
-  )
+  return <LoginView />
 }
 export default LoginPage

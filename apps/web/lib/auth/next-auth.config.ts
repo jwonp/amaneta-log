@@ -1,9 +1,12 @@
 import { NextAuthOptions, User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import axios, { AxiosError } from "axios"
+import { JWT } from "next-auth/jwt"
 
 type AuthUserResponse = {
   accessToken: string
+  refreshToken: string
+  accessTokenExpiresAt: string
   user: {
     username: string
     name: string
@@ -11,6 +14,51 @@ type AuthUserResponse = {
     profileImage: string | null
     role: "USER" | "ADMIN"
     createdAt: Date
+  }
+}
+
+type RefreshTokenResponse = {
+  accessToken: string
+  refreshToken: string
+  accessTokenExpiresAt: string
+}
+
+const refreshAccessToken = async (token: JWT): Promise<JWT> => {
+  const backendUrl = process.env.BACKEND_URL
+
+  if (!backendUrl || !token.refreshToken) {
+    return {
+      ...token,
+      accessToken: undefined,
+      refreshToken: undefined,
+      accessTokenExpiresAt: undefined,
+      error: "RefreshAccessTokenError",
+    }
+  }
+
+  try {
+    const response = await axios.post<RefreshTokenResponse>(
+      `${backendUrl}/auth/refresh`,
+      {
+        refreshToken: token.refreshToken,
+      }
+    )
+
+    return {
+      ...token,
+      accessToken: response.data.accessToken,
+      refreshToken: response.data.refreshToken,
+      accessTokenExpiresAt: response.data.accessTokenExpiresAt,
+      error: undefined,
+    }
+  } catch {
+    return {
+      ...token,
+      accessToken: undefined,
+      refreshToken: undefined,
+      accessTokenExpiresAt: undefined,
+      error: "RefreshAccessTokenError",
+    }
   }
 }
 
@@ -59,6 +107,8 @@ export const authOptions: NextAuthOptions = {
             role: data.role,
             createdAt: data.createdAt,
             accessToken: res.data.accessToken,
+            refreshToken: res.data.refreshToken,
+            accessTokenExpiresAt: res.data.accessTokenExpiresAt,
           }
         } catch (error) {
           if (axios.isAxiosError(error)) {
@@ -84,9 +134,26 @@ export const authOptions: NextAuthOptions = {
         token.profileImage = authUser.profileImage
         token.createdAt = authUser.createdAt
         token.accessToken = authUser.accessToken
+        token.refreshToken = authUser.refreshToken
+        token.accessTokenExpiresAt = authUser.accessTokenExpiresAt
+        token.error = undefined
       }
 
-      return token
+      if (!token.accessTokenExpiresAt) {
+        return token
+      }
+
+      const accessTokenExpiresAt = new Date(token.accessTokenExpiresAt).getTime()
+
+      if (Number.isNaN(accessTokenExpiresAt)) {
+        return await refreshAccessToken(token)
+      }
+
+      if (Date.now() < accessTokenExpiresAt - 30_000) {
+        return token
+      }
+
+      return await refreshAccessToken(token)
     },
 
     session: async ({ session, token }) => {
@@ -101,6 +168,8 @@ export const authOptions: NextAuthOptions = {
       }
 
       session.accessToken = token.accessToken
+      session.accessTokenExpiresAt = token.accessTokenExpiresAt
+      session.error = token.error
 
       return session
     },

@@ -7,7 +7,16 @@ export interface SignupRequest {
 
 export type LoginRequest = SignupRequest;
 
-export interface LoginResponse {
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface AuthTokenResponse {
   accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAt: string;
+}
+
+export interface LoginResponse extends AuthTokenResponse {
   user: SaveUserResponse;
 }

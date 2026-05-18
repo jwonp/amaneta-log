@@ -15,6 +15,8 @@ import {
 import HeaderMenuItem from "@/src/04_entities/header/ui/HeaderMenuItem"
 import ReactQueryClientProvider from "@/src/04_entities/query/ui/ReactQueryClientProvider"
 import LogoutButton from "@/src/04_entities/header/ui/LogoutButton"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth/next-auth.config"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -23,11 +25,13 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await getServerSession(authOptions)
+
   return (
     <html
       lang="en"
@@ -47,15 +51,23 @@ export default function RootLayout({
                 <NavigationMenuList className="flex h-full w-full justify-between">
                   <div className="flex items-center gap-6">
                     <Logo />
-                    <div className="flex h-full w-fit gap-2 px-4">
-                      <HeaderMenuItem label={"Blog"} linkTo={"/posts"} />
-                      <HeaderMenuItem label={"Editor"} linkTo={"/editor"} />
-                      <HeaderMenuItem label={"Admin"} linkTo={"/admin"} />
+                    {session ? (
+                      <div className="flex h-full w-fit gap-2 px-4">
+                        <HeaderMenuItem label={"Blog"} linkTo={"/posts"} />
+                        {session.user.role === "USER" ? (
+                          <HeaderMenuItem label={"Editor"} linkTo={"/editor"} />
+                        ) : null}
+                        {session.user.role === "ADMIN" ? (
+                          <HeaderMenuItem label={"Admin"} linkTo={"/admin"} />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  {session ? (
+                    <div className="px-4">
+                      <LogoutButton />
                     </div>
-                  </div>
-                  <div className="px-4">
-                    <LogoutButton />
-                  </div>
+                  ) : null}
                 </NavigationMenuList>
               </NavigationMenu>
               {children}

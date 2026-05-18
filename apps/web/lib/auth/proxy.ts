@@ -24,12 +24,13 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute = isMatchedRoute(pathname, PUBLIC_ROUTES)
   const isAuthRequiredRoute = isMatchedRoute(pathname, AUTH_REQUIRED_ROUTES)
   const isAdminRequiredRoute = isMatchedRoute(pathname, ADMIN_REQUIRED_ROUTES)
+  const hasValidSession = Boolean(token?.accessToken) && !token?.error
 
-  if (token && isPublicRoute) {
+  if (hasValidSession && isPublicRoute) {
     return NextResponse.redirect(new URL("/", request.url))
   }
 
-  if (!token && isAuthRequiredRoute) {
+  if (!hasValidSession && isAuthRequiredRoute) {
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("callbackUrl", request.nextUrl.href)
 

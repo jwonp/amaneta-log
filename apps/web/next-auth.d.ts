@@ -13,7 +13,9 @@ declare module "next-auth" {
       role: UserRole
       createdAt: Date
     } & DefaultSession["user"]
-    accessToken: string
+    accessToken?: string
+    accessTokenExpiresAt?: string
+    error?: "RefreshAccessTokenError"
   }
 
   interface User extends DefaultUser {
@@ -25,6 +27,8 @@ declare module "next-auth" {
     role: UserRole
     createdAt: Date
     accessToken: string
+    refreshToken: string
+    accessTokenExpiresAt: string
   }
 }
 
@@ -34,6 +38,9 @@ declare module "next-auth/jwt" {
     role?: UserRole
     profileImage?: string | null
     createdAt?: Date
-    accessToken: string
+    accessToken?: string
+    refreshToken?: string
+    accessTokenExpiresAt?: string
+    error?: "RefreshAccessTokenError"
   }
 }
