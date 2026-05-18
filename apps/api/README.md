@@ -42,9 +42,9 @@ pnpm --filter api prisma:studio
 
 ## 4. 현재 구현 메모
 
-- `POST /posts/draft`, `GET /posts/:postId`, `GET /posts/:postId/edit`, `PATCH /posts/:postId`는 이미 연결돼 있다.
-- `GET /posts`는 아직 비어 있어 에디터 목록과 공개 포스트 목록의 책임을 분리해서 설계해야 한다.
-- 현재 공개 파일 조회 라우트는 발행된 게시물만 허용하므로, 드래프트 썸네일 목록 노출에는 별도 보호 경로가 필요하다.
+- `POST /posts/draft`, `GET /posts`, `GET /posts/editable`, `GET /posts/:postId`, `GET /posts/:postId/edit`, `PATCH /posts/:postId`가 연결돼 있다.
+- 공개 목록과 편집 목록은 분리된 DTO/cursor 계약을 사용하고, 썸네일은 `ATTACHED` 파일만 응답에 포함한다.
+- 파일 조회는 공개 프록시와 편집용 보호 경로를 모두 제공하며, 업로드 후 `TEMP/ATTACHED/ORPHANED/DELETED` 상태 전이와 orphan cleanup cron이 동작한다.
 
 ## 5. 관련 문서
 

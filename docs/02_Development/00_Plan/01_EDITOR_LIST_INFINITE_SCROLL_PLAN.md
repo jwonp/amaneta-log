@@ -9,8 +9,8 @@
 > `apps/api/src/post/post.service.ts`
 > `apps/api/src/storage/storage.controller.ts`
 >
-> 이 문서는 현재 비어 있는 에디터 목록 화면을 `EditorListItemCard`가 요구하는 props에 맞춰 실제 동작하는 무한스크롤 목록으로 연결하기 위한 구현 계획이다.
-> 이번에는 "일단 목록만 먼저"가 아니라, 근시일 내 반드시 붙을 검색 필터와 안정적인 페이지네이션 계약까지 초기 범위에 포함한다.
+> 이 문서는 `EditorListItemCard`가 요구하는 props에 맞춰 연결된 에디터 목록 무한스크롤의 구현 기준과 남은 확장 포인트를 정리한다.
+> 목록 fetch, cursor 페이지네이션, 보호된 썸네일 경로는 이미 구현돼 있으므로, 아래 내용은 완료된 설계와 후속 보강 항목을 함께 다룬다.
 
 ## 1. 목표
 
@@ -24,8 +24,8 @@
 
 ### 2.1 프론트엔드
 
-- `apps/web/src/02_widgets/editor/ui/EditorList.tsx`는 카드 그리드만 있고 실제 데이터 fetch가 없다.
-- `apps/web/src/03_features/editor/api/editorList.api.ts`는 빈 훅이다.
+- `apps/web/src/02_widgets/editor/ui/EditorList.tsx`는 `useEditorListApi`를 통해 실제 목록 fetch, 무한스크롤, 로딩/오류/빈 상태를 처리한다.
+- `apps/web/src/03_features/editor/api/editorList.api.ts`는 `useInfiniteQuery` 기반으로 `GET /posts/editable`를 호출하고 카드 props로 매핑한다.
 - `EditorListItemCard`는 아래 props를 요구한다.
 
 ```ts
@@ -42,14 +42,14 @@ type EditorListItemCardProps = {
 
 ### 2.2 백엔드
 
-- `apps/api/src/post/post.controller.ts`의 `GET /posts`는 아직 비어 있다.
-- 현재 구현된 `GET /posts/:postId`는 공개 포스트 상세용이고, `GET /posts/:postId/edit`는 관리자 수정용이다.
-- 즉 목록 API는 아직 공개용과 편집용이 모두 분리되지 않은 상태다.
+- `apps/api/src/post/post.controller.ts`에는 공개 목록 `GET /posts`와 편집 목록 `GET /posts/editable`가 모두 구현돼 있다.
+- 공개 상세 `GET /posts/:postId`와 관리자 수정용 `GET /posts/:postId/edit`도 분리돼 있다.
+- 목록 API는 공개용과 편집용 DTO/cursor 계약이 분리된 상태다.
 
 ### 2.3 파일 접근 제약
 
 - `apps/api/src/storage/storage.controller.ts`의 `GET /storage/posts/:postId/files/:fileId`는 발행된 공개 포스트 파일만 반환한다.
-- 에디터 목록은 드래프트 썸네일도 보여줘야 하므로, 현재 공개 파일 라우트만으로는 `thumbnailSrc`를 안정적으로 만들 수 없다.
+- 에디터 목록용으로는 `GET /storage/posts/:postId/files/:fileId/editable` 보호 경로가 추가돼 있어 드래프트 썸네일도 권한 검증 후 조회할 수 있다.
 
 ## 3. 범위
 

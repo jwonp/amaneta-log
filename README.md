@@ -63,5 +63,6 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 ## 5. 현재 구현 메모
 
 - 에디터 작성 플로우는 초안 작성과 수정 진입점이 이미 연결돼 있다.
-- 에디터 목록은 `EditorList`와 `useEditorListApi`가 아직 비어 있어 별도 구현이 필요하다.
-- 백엔드 `GET /posts`는 미구현 상태라, 목록 API 계약부터 먼저 고정해야 한다.
+- 공개 글 목록 `GET /posts`와 편집용 목록 `GET /posts/editable`가 cursor 기반으로 동작한다.
+- 에디터 목록은 `EditorList`와 `useEditorListApi`가 연결돼 있고, 무한스크롤과 썸네일 매핑까지 포함해 사용 중이다.
+- 스토리지는 공개 프록시와 편집용 보호 경로를 모두 제공하고, `TEMP -> ATTACHED -> ORPHANED -> DELETED` 상태 전이와 cleanup cron이 구현돼 있다.
