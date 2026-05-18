@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   createHash,
@@ -17,6 +18,7 @@ import {
   UserAuth,
   UserProvider,
   UserRole,
+  UserStatus,
 } from '../../generated/prisma/client.cjs';
 import { UserService } from '../user/user.service';
 import { PrismaTransactionClient } from '../prisma/prisma.type';
@@ -63,8 +65,8 @@ export class AuthService {
     };
 
     const userPayload: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
-      name: username,
-      username: username,
+      name: normalizedUsername,
+      username: normalizedUsername,
       provider: 'CREDENTIALS',
       email: '',
       profileImage: null,
@@ -125,11 +127,20 @@ export class AuthService {
           provider: 'CREDENTIALS',
         },
       },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        profileImage: true,
+        role: true,
+        status: true,
+        provider: true,
+        createdAt: true,
+      },
     });
 
-    if (!user) {
-      throw new BadRequestException('user profile not found');
-    }
+    this.assertActiveAuthUser(user);
 
     const tokens = await this.issueTokens({
       userId: user.id,
@@ -178,12 +189,11 @@ export class AuthService {
         username: true,
         provider: true,
         role: true,
+        status: true,
       },
     });
 
-    if (!user) {
-      throw new BadRequestException('user not found');
-    }
+    this.assertActiveRefreshUser(user);
 
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
     const now = new Date();
@@ -395,5 +405,46 @@ export class AuthService {
     }
 
     return decoded as DecodedJwtPayload;
+  }
+
+  private assertActiveAuthUser(
+    user: Pick<
+      User,
+      | 'id'
+      | 'username'
+      | 'name'
+      | 'email'
+      | 'profileImage'
+      | 'role'
+      | 'status'
+      | 'provider'
+      | 'createdAt'
+    > | null,
+  ): asserts user is Pick<
+    User,
+    | 'id'
+    | 'username'
+    | 'name'
+    | 'email'
+    | 'profileImage'
+    | 'role'
+    | 'status'
+    | 'provider'
+    | 'createdAt'
+  > {
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('invalid username or password');
+    }
+  }
+
+  private assertActiveRefreshUser(
+    user: Pick<User, 'id' | 'username' | 'provider' | 'role' | 'status'> | null,
+  ): asserts user is Pick<
+    User,
+    'id' | 'username' | 'provider' | 'role' | 'status'
+  > {
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      throw new BadRequestException('invalid refresh token');
+    }
   }
 }
