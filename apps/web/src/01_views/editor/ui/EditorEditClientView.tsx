@@ -21,6 +21,7 @@ const EditorEditClientView = ({
     pendingUploadsCount: 0,
     isManualSaving: false,
     isAutoSaving: false,
+    isSessionExpired: false,
     errorMessage: null,
   })
 

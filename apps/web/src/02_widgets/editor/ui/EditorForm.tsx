@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import axios, { AxiosError } from "axios"
+import axios from "axios"
 import { useRouter } from "next/navigation"
 import { Button } from "@packages/ui/src/components/button"
 import { FieldGroup } from "@workspace/ui/components/field"
@@ -28,6 +28,8 @@ import {
 } from "@/src/04_entities/editor/model/editorField.type"
 import { HttpStatus } from "@/src/05_shared/api/common/model/api.const"
 import { UploadPostFileResponse } from "@/src/05_shared/api/storage/model/storage.dto.type"
+import { normalizeAppError } from "@/lib/errors/app-error"
+import { isSessionRecoveryErrorCode } from "@/src/05_shared/api/common/model/auth-error"
 
 const AUTOSAVE_DEBOUNCE_MS = 3000
 const CONTENT_ALLOWED_MIME_TYPES = [
@@ -79,6 +81,7 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
     pendingUploadsCount: 0,
     isManualSaving: false,
     isAutoSaving: false,
+    isSessionExpired: false,
     errorMessage: null,
   })
 
@@ -97,6 +100,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   const latestAppliedRequestIdRef = useRef(0)
   const savedDraftFingerprintRef = useRef(createDraftFingerprint(initialState))
   const isReadyRef = useRef(false)
+  const isSessionExpiredRef = useRef(false)
+  const sessionRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
   const selectionRef = useRef<EditorMarkdownSelection>({
     start: formState.markdown.length,
     end: formState.markdown.length,
@@ -117,6 +124,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current)
+      }
+
+      if (sessionRedirectTimerRef.current) {
+        clearTimeout(sessionRedirectTimerRef.current)
       }
     }
   }, [])
@@ -144,13 +155,54 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
     key: Key,
     value: EditorFormState[Key]
   ) => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
     setFormState((prev) => ({
       ...prev,
       [key]: value,
     }))
   }
 
+  const handleSessionExpired = useCallback(() => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
+    isSessionExpiredRef.current = true
+    dirtyAfterSaveRef.current = false
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = null
+    }
+
+    const callbackUrl =
+      typeof window === "undefined"
+        ? "/editor"
+        : `${window.location.pathname}${window.location.search}`
+
+    setSaveState((prev) => ({
+      ...prev,
+      status: "error",
+      isAutoSaving: false,
+      isManualSaving: false,
+      isSessionExpired: true,
+      errorMessage:
+        "세션이 만료되어 저장을 중단했습니다. 다시 로그인해주세요.",
+    }))
+
+    sessionRedirectTimerRef.current = setTimeout(() => {
+      router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+    }, 1500)
+  }, [router])
+
   const scheduleAutosave = useCallback((delay = AUTOSAVE_DEBOUNCE_MS) => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current)
     }
@@ -197,6 +249,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   }, [formState, scheduleAutosave])
 
   const enqueueSave = async (mode: "auto" | "draft" | "manual") => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
     if (mode === "auto" && pendingUploadsCountRef.current > 0) {
       return
     }
@@ -231,6 +287,7 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
           status: "saving",
           isAutoSaving: mode === "auto",
           isManualSaving: mode !== "auto",
+          isSessionExpired: false,
           errorMessage: null,
         }))
 
@@ -262,18 +319,25 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
             router.push("/editor")
           }
         } catch (error) {
-          const message =
-            error instanceof AxiosError &&
-            typeof error.response?.data === "object"
-              ? "저장에 실패했습니다."
-              : "저장에 실패했습니다."
+          const appError = normalizeAppError(error, {
+            message: "저장에 실패했습니다.",
+          })
+
+          if (
+            appError.status === HttpStatus.UNAUTHORIZED &&
+            isSessionRecoveryErrorCode(appError.code)
+          ) {
+            handleSessionExpired()
+            return
+          }
 
           setSaveState((prev) => ({
             ...prev,
             status: "error",
             isAutoSaving: false,
             isManualSaving: false,
-            errorMessage: message,
+            isSessionExpired: false,
+            errorMessage: "저장에 실패했습니다.",
           }))
         } finally {
           saveInFlightRef.current = false
@@ -308,6 +372,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   enqueueSaveRef.current = enqueueSave
 
   const handleChangeThumbnail = async (file: File | null) => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
     if (!file) {
       setThumbnailPreviewSrc(undefined)
       updateFormState("thumbnailId", null)
@@ -346,12 +414,26 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
       updateFormState("thumbnailId", data.id)
       setSaveState((prev) => ({
         ...prev,
+        isSessionExpired: false,
         errorMessage: null,
       }))
-    } catch {
+    } catch (error) {
+      const appError = normalizeAppError(error, {
+        message: "썸네일 업로드에 실패했습니다.",
+      })
+
+      if (
+        appError.status === HttpStatus.UNAUTHORIZED &&
+        isSessionRecoveryErrorCode(appError.code)
+      ) {
+        handleSessionExpired()
+        return
+      }
+
       setSaveState((prev) => ({
         ...prev,
         status: "error",
+        isSessionExpired: false,
         errorMessage: "썸네일 업로드에 실패했습니다.",
       }))
     } finally {
@@ -360,6 +442,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   }
 
   const handleClickImageButton = () => {
+    if (isSessionExpiredRef.current) {
+      return
+    }
+
     const textarea = textareaRef.current
 
     if (textarea) {
@@ -375,6 +461,11 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   const handleChangeContentImage = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    if (isSessionExpiredRef.current) {
+      event.target.value = ""
+      return
+    }
+
     const file = event.target.files?.[0]
 
     event.target.value = ""
@@ -425,6 +516,7 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
       }
       setSaveState((prev) => ({
         ...prev,
+        isSessionExpired: false,
         errorMessage: null,
       }))
 
@@ -438,10 +530,23 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
         textarea.focus()
         textarea.setSelectionRange(insertion.cursor, insertion.cursor)
       })
-    } catch {
+    } catch (error) {
+      const appError = normalizeAppError(error, {
+        message: "본문 이미지 업로드에 실패했습니다.",
+      })
+
+      if (
+        appError.status === HttpStatus.UNAUTHORIZED &&
+        isSessionRecoveryErrorCode(appError.code)
+      ) {
+        handleSessionExpired()
+        return
+      }
+
       setSaveState((prev) => ({
         ...prev,
         status: "error",
+        isSessionExpired: false,
         errorMessage: "본문 이미지 업로드에 실패했습니다.",
       }))
     } finally {
@@ -463,7 +568,10 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
     }))
   }
 
-  const isBusy = saveState.pendingUploadsCount > 0 || saveState.isManualSaving
+  const isBusy =
+    saveState.pendingUploadsCount > 0 ||
+    saveState.isManualSaving ||
+    saveState.isSessionExpired
 
   return (
     <form className="w-full max-w-full min-w-0 overflow-x-clip">
