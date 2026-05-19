@@ -37,8 +37,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (isAdminRequiredRoute && token?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", request.url))
+  if (hasValidSession && isAdminRequiredRoute && token?.role !== "ADMIN") {
+    return NextResponse.next()
   }
 
   return NextResponse.next()
