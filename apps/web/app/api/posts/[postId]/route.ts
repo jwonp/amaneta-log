@@ -13,23 +13,24 @@ type RouteContext = {
   }>
 }
 export const GET = async (_request: NextRequest, context: RouteContext) => {
-  const requestApi = await createServerRequestApi()
+  const requestApi = await createServerRequestApi(_request)
   const { postId } = await context.params
 
   try {
     const { data, status } = await requestApi.get(`/posts/${postId}`)
-    return NextResponse.json(data, { status })
+    const response = NextResponse.json(data, { status })
+    return requestApi.applyAuthToResponse(response)
   } catch (error) {
     const appError = toPostDetailError(error)
-
-    return NextResponse.json(serializeAppError(appError), {
+    const response = NextResponse.json(serializeAppError(appError), {
       status: appError.status,
     })
+    return requestApi.applyAuthToResponse(response)
   }
 }
 
 export const PATCH = async (request: NextRequest, context: RouteContext) => {
-  const requestApi = await createServerRequestApi()
+  const requestApi = await createServerRequestApi(request)
   const { postId } = await context.params
 
   const payload = await request.json()
@@ -48,8 +49,9 @@ export const PATCH = async (request: NextRequest, context: RouteContext) => {
           })
         : appError
 
-    return NextResponse.json(serializeAppError(safeError), {
+    const response = NextResponse.json(serializeAppError(safeError), {
       status: safeError.status,
     })
+    return requestApi.applyAuthToResponse(response)
   }
 }

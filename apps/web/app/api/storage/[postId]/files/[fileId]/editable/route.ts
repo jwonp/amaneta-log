@@ -1,5 +1,5 @@
 import { createServerRequestApi } from "@/lib/api/requestApi"
-import { AxiosError } from "axios"
+import { normalizeAppError, serializeAppError } from "@/lib/errors/app-error"
 import { NextRequest, NextResponse } from "next/server"
 
 type RouteContext = {
@@ -10,44 +10,52 @@ type RouteContext = {
 }
 
 export const GET = async (_request: NextRequest, context: RouteContext) => {
-  const requestApi = await createServerRequestApi()
+  const requestApi = await createServerRequestApi(_request)
   const { postId, fileId } = await context.params
 
-  const response = await requestApi
-    .get(`/storage/posts/${postId}/files/${fileId}/editable`, {
-      responseType: "stream",
+  try {
+    const response = await requestApi.get<ArrayBuffer>(
+      `/storage/posts/${postId}/files/${fileId}/editable`,
+      {
+        responseType: "arraybuffer",
+      }
+    )
+
+    const headers = new Headers()
+    const contentType = response.headers["content-type"]
+    const contentLength = response.headers["content-length"]
+    const cacheControl = response.headers["cache-control"]
+    const etag = response.headers.etag
+
+    if (typeof contentType === "string") {
+      headers.set("Content-Type", contentType)
+    }
+
+    if (typeof contentLength === "string") {
+      headers.set("Content-Length", contentLength)
+    }
+
+    if (typeof cacheControl === "string") {
+      headers.set("Cache-Control", cacheControl)
+    }
+
+    if (typeof etag === "string") {
+      headers.set("ETag", etag)
+    }
+
+    const nextResponse = new NextResponse(response.data as BodyInit, {
+      status: response.status,
+      headers,
     })
-    .then(({ data, headers, status }) => ({ data, headers, status }))
-    .catch((error: AxiosError) => ({
-      data: error.response?.data,
-      headers: error.response?.headers ?? {},
-      status: error.status ?? 500,
-    }))
+    return requestApi.applyAuthToResponse(nextResponse)
+  } catch (error) {
+    const appError = normalizeAppError(error, {
+      message: "편집용 파일을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    })
+    const response = NextResponse.json(serializeAppError(appError), {
+      status: appError.status,
+    })
 
-  const headers = new Headers()
-  const contentType = response.headers["content-type"]
-  const contentLength = response.headers["content-length"]
-  const cacheControl = response.headers["cache-control"]
-  const etag = response.headers.etag
-
-  if (typeof contentType === "string") {
-    headers.set("Content-Type", contentType)
+    return requestApi.applyAuthToResponse(response)
   }
-
-  if (typeof contentLength === "string") {
-    headers.set("Content-Length", contentLength)
-  }
-
-  if (typeof cacheControl === "string") {
-    headers.set("Cache-Control", cacheControl)
-  }
-
-  if (typeof etag === "string") {
-    headers.set("ETag", etag)
-  }
-
-  return new NextResponse(response.data as BodyInit | null, {
-    status: response.status,
-    headers,
-  })
 }

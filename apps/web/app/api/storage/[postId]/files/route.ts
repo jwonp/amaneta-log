@@ -1,5 +1,5 @@
-import { authOptions } from "@/lib/auth/next-auth.config"
-import { getServerSession } from "next-auth"
+import { createServerRequestApi } from "@/lib/api/requestApi"
+import { normalizeAppError, serializeAppError } from "@/lib/errors/app-error"
 import { NextRequest, NextResponse } from "next/server"
 import { HttpStatus } from "@/src/05_shared/api/common/model/api.const"
 
@@ -20,23 +20,7 @@ type RouteContext = {
 }
 
 export const POST = async (request: NextRequest, context: RouteContext) => {
-  const session = await getServerSession(authOptions)
-  const backendUrl =
-    process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL
-
-  if (!session?.accessToken) {
-    return NextResponse.json(
-      { message: "unauthorized" },
-      { status: HttpStatus.UNAUTHORIZED }
-    )
-  }
-
-  if (!backendUrl) {
-    return NextResponse.json(
-      { message: "BACKEND_URL is not configured" },
-      { status: HttpStatus.INTERNAL_SERVER_ERROR }
-    )
-  }
+  const requestApi = await createServerRequestApi(request)
 
   const { postId } = await context.params
   const formData = await request.formData()
@@ -62,21 +46,23 @@ export const POST = async (request: NextRequest, context: RouteContext) => {
   backendFormData.append("usage", usage)
   backendFormData.append("file", file)
 
-  const response = await fetch(`${backendUrl}/storage/posts/${postId}/files`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-    body: backendFormData,
-  })
+  try {
+    const { data, status } = await requestApi.post(
+      `/storage/posts/${postId}/files`,
+      backendFormData
+    )
+    const response = NextResponse.json(data, { status })
+    return requestApi.applyAuthToResponse(response)
+  } catch (error) {
+    const appError = normalizeAppError(error, {
+      message: "파일을 업로드하지 못했습니다. 잠시 후 다시 시도해주세요.",
+    })
+    const response = NextResponse.json(serializeAppError(appError), {
+      status: appError.status,
+    })
 
-  const data = await response.json().catch(() => ({
-    message: "failed to upload file",
-  }))
-
-  return NextResponse.json(data, {
-    status: response.status,
-  })
+    return requestApi.applyAuthToResponse(response)
+  }
 }
 
 const validateUpload = (file: File, usage: string) => {
