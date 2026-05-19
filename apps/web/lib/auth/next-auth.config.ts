@@ -1,6 +1,6 @@
 import { NextAuthOptions, User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import axios, { AxiosError } from "axios"
+import axios from "axios"
 import { JWT } from "next-auth/jwt"
 
 type AuthUserResponse = {
@@ -75,29 +75,22 @@ export const authOptions: NextAuthOptions = {
         const password = credentials?.password
 
         if (!email || !password) {
-          throw new Error("Email and password are required")
+          throw new Error("CredentialsSignin")
         }
 
         try {
           const backendUrl = process.env.BACKEND_URL
 
           if (!backendUrl) {
-            throw new Error("No backend url config")
+            throw new Error("Configuration")
           }
 
-          const res = await axios
-            .post<AuthUserResponse>(`${backendUrl}/auth/login`, {
-              username: email,
-              password,
-            })
-            .then((res) => ({ data: res.data }))
-            .catch((err: AxiosError) => {
-              console.log(err.message)
-            })
+          const response = await axios.post<AuthUserResponse>(`${backendUrl}/auth/login`, {
+            username: email,
+            password,
+          })
 
-          if (!res) throw new Error("Fail to login")
-
-          const data = res.data.user
+          const data = response.data.user
           return {
             id: data.username,
             username: data.username,
@@ -106,17 +99,26 @@ export const authOptions: NextAuthOptions = {
             profileImage: data.profileImage,
             role: data.role,
             createdAt: data.createdAt,
-            accessToken: res.data.accessToken,
-            refreshToken: res.data.refreshToken,
-            accessTokenExpiresAt: res.data.accessTokenExpiresAt,
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+            accessTokenExpiresAt: response.data.accessTokenExpiresAt,
           }
         } catch (error) {
           if (axios.isAxiosError(error)) {
-            throw new Error(
-              error.response?.data?.message ?? "Credentials login failed"
-            )
+            if (error.response?.status === 401) {
+              throw new Error("CredentialsSignin")
+            }
+
+            if (error.response?.status === 403) {
+              throw new Error("AccessDenied")
+            }
           }
-          throw new Error("Credentials login failed")
+
+          if (error instanceof Error) {
+            throw error
+          }
+
+          throw new Error("Default")
         }
       },
     }),
@@ -176,5 +178,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/auth/error",
   },
 }

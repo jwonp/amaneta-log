@@ -1,6 +1,6 @@
 import LoginForm from "@/src/03_features/auth/ui/LoginForm"
 
-const LoginView = () => {
+const LoginView = ({ callbackUrl }: { callbackUrl?: string }) => {
   return (
     <div className="item-center flex h-full w-full">
       <div
@@ -8,7 +8,7 @@ const LoginView = () => {
         aria-label={"login-form-wrapper"}
       >
         <div className="w-full max-w-96">
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
       </div>
     </div>

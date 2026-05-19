@@ -12,9 +12,14 @@ import {
 import { Input } from "@packages/ui/src/components/input"
 import { Label } from "@packages/ui/src/components/label"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
+import { useState } from "react"
 
-const LoginForm = () => {
+const LoginForm = ({ callbackUrl }: { callbackUrl?: string }) => {
+  const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const handleClickLogin = async (
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -28,20 +33,39 @@ const LoginForm = () => {
     const password = String(formData.get("password") ?? "")
 
     if (!email || !password) {
-      alert("이메일과 비밀번호를 입력해주세요.")
+      form.reportValidity()
       return
     }
+
+    setIsSubmitting(true)
 
     const result = await signIn("credentials", {
       email,
       password,
-      redirect: true,
-      callbackUrl: "/",
+      redirect: false,
+      callbackUrl: callbackUrl ?? "/",
     })
 
+    setIsSubmitting(false)
+
     if (result?.error) {
-      alert(result.error)
+      const query = new URLSearchParams({ error: result.error })
+
+      if (callbackUrl) {
+        query.set("callbackUrl", callbackUrl)
+      }
+
+      router.push(`/auth/error?${query.toString()}`)
+      return
     }
+
+    if (result?.url) {
+      router.push(result.url)
+      router.refresh()
+      return
+    }
+
+    router.push(callbackUrl ?? "/")
   }
 
   return (
@@ -86,8 +110,13 @@ const LoginForm = () => {
           </div>
 
           <div>
-            <Button type="submit" className="w-full" onClick={handleClickLogin}>
-              Login
+            <Button
+              type="submit"
+              className="w-full"
+              onClick={handleClickLogin}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "로그인 중..." : "Login"}
             </Button>
           </div>
         </form>
