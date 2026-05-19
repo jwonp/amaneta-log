@@ -99,6 +99,8 @@ services:
     expose:
       - "${MINIO_PORT}"
       - "${MINIO_CONSOLE_PORT}"
+    ports:
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
     volumes:
       - minio_prod_data:/data
     healthcheck:
