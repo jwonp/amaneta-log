@@ -1,5 +1,5 @@
-import { authOptions } from "@/lib/auth/next-auth.config"
-import { getServerSession } from "next-auth"
+import { createServerRequestApi } from "@/lib/api/requestApi"
+import { normalizeAppError, serializeAppError } from "@/lib/errors/app-error"
 import { NextRequest, NextResponse } from "next/server"
 
 type RouteContext = {
@@ -10,57 +10,53 @@ type RouteContext = {
 }
 
 export const GET = async (_request: NextRequest, context: RouteContext) => {
-  const session = await getServerSession(authOptions)
+  const requestApi = await createServerRequestApi(_request, {
+    requireAuth: false,
+  })
   const { postId, fileId } = await context.params
 
-  const backendUrl =
-    process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL
-
-  if (!backendUrl) {
-    return NextResponse.json(
-      { message: "BACKEND_URL is not configured" },
-      { status: 500 }
+  try {
+    const response = await requestApi.get<ArrayBuffer>(
+      `/storage/posts/${postId}/files/${fileId}`,
+      {
+        responseType: "arraybuffer",
+      }
     )
-  }
+    const headers = new Headers()
+    const contentType = response.headers["content-type"]
+    const contentLength = response.headers["content-length"]
+    const cacheControl = response.headers["cache-control"]
+    const etag = response.headers.etag
 
-  const response = await fetch(
-    `${backendUrl}/storage/posts/${postId}/files/${fileId}`,
-    {
-      method: "GET",
-      cache: "no-store",
-      headers: session?.accessToken
-        ? {
-            Authorization: `Bearer ${session.accessToken}`,
-          }
-        : undefined,
+    if (typeof contentType === "string") {
+      headers.set("Content-Type", contentType)
     }
-  )
 
-  const headers = new Headers()
+    if (typeof contentLength === "string") {
+      headers.set("Content-Length", contentLength)
+    }
 
-  const contentType = response.headers.get("content-type")
-  const contentLength = response.headers.get("content-length")
-  const cacheControl = response.headers.get("cache-control")
-  const etag = response.headers.get("etag")
+    if (typeof cacheControl === "string") {
+      headers.set("Cache-Control", cacheControl)
+    }
 
-  if (contentType) {
-    headers.set("Content-Type", contentType)
+    if (typeof etag === "string") {
+      headers.set("ETag", etag)
+    }
+
+    const nextResponse = new NextResponse(response.data as BodyInit, {
+      status: response.status,
+      headers,
+    })
+    return requestApi.applyAuthToResponse(nextResponse)
+  } catch (error) {
+    const appError = normalizeAppError(error, {
+      message: "파일을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    })
+    const response = NextResponse.json(serializeAppError(appError), {
+      status: appError.status,
+    })
+
+    return requestApi.applyAuthToResponse(response)
   }
-
-  if (contentLength) {
-    headers.set("Content-Length", contentLength)
-  }
-
-  if (cacheControl) {
-    headers.set("Cache-Control", cacheControl)
-  }
-
-  if (etag) {
-    headers.set("ETag", etag)
-  }
-
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers,
-  })
 }

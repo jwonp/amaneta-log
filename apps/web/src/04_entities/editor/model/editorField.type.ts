@@ -15,5 +15,6 @@ export interface EditorSaveState {
   pendingUploadsCount: number
   isManualSaving: boolean
   isAutoSaving: boolean
+  isSessionExpired: boolean
   errorMessage: string | null
 }
