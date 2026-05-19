@@ -6,6 +6,7 @@
 
 - [01_EDITOR_LIST_INFINITE_SCROLL_PLAN.md](./01_EDITOR_LIST_INFINITE_SCROLL_PLAN.md): `EditorListItemCard` props 기준 에디터 목록 무한스크롤 구현 계획
 - [02_POST_UPLOAD_PLAN.md](./02_POST_UPLOAD_PLAN.md): 게시물 작성, 업로드, 첨부파일 상태 전이 구현 TODO
+- [03_ACCESS_TOKEN_REFRESH_RECOVERY_PLAN.md](./03_ACCESS_TOKEN_REFRESH_RECOVERY_PLAN.md): access token 만료 시 refresh token으로 요청을 복구하고 실패 시 세션 종료를 처리하는 계획
 
 ## 문서 작성 기준
 
