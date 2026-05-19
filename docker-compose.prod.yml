@@ -39,6 +39,7 @@ services:
       - .env.production
     ports:
       - "${API_PORT}:${API_PORT}"
+      - "${API_PRISMA_STUDIO_PORT}:${API_PRISMA_STUDIO_PORT}"
     restart: unless-stopped
     depends_on:
       postgres:
