@@ -38,6 +38,8 @@ export const GET = async (_request: NextRequest, context: RouteContext) => {
 
     if (typeof cacheControl === "string") {
       headers.set("Cache-Control", cacheControl)
+    } else if (response.status === 200) {
+      headers.set("Cache-Control", "public, max-age=31536000, immutable")
     }
 
     if (typeof etag === "string") {

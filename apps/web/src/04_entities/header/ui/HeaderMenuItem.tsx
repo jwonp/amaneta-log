@@ -1,6 +1,6 @@
 "use client"
 import HeaderMenuButton from "@/src/05_shared/button/ui/HeaderMenuButton"
-import { NavigationMenuItem } from "@packages/ui/src/components/navigation-menu"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
 interface HeaderMenuItemProps {
@@ -11,13 +11,21 @@ const HeaderMenuItem = ({ label, linkTo }: HeaderMenuItemProps) => {
   const pathname = usePathname()
   const router = useRouter()
   return (
-    <NavigationMenuItem className="h-14">
+    <li className="h-14 list-none">
       <HeaderMenuButton
         label={label}
         isSelected={pathname.startsWith(linkTo)}
-        onPointerDown={() => router.push(linkTo)}
-      />
-    </NavigationMenuItem>
+        asChild
+      >
+        <Link
+          href={linkTo}
+          onMouseEnter={() => router.prefetch(linkTo)}
+          className="flex h-full items-center"
+        >
+          <span>{label}</span>
+        </Link>
+      </HeaderMenuButton>
+    </li>
   )
 }
 export default HeaderMenuItem

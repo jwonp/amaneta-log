@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useRef, useEffect } from "react"
 import { usePostListApi } from "@/src/03_features/post/api/postList.api"
 import PostListItemCard from "@/src/05_shared/card/ui/PostListItemCard"
+import { GetPostListResponse } from "@/src/05_shared/api/post/model/post.dto.type"
 
 const SKELETON_CARD_COUNT = 6
 
@@ -61,7 +62,8 @@ const PostListSkeletonGrid = ({ count }: { count: number }) => {
     </div>
   )
 }
-const PostList = () => {
+
+const PostList = ({ initialPage }: { initialPage: GetPostListResponse }) => {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const {
     items,
@@ -71,7 +73,7 @@ const PostList = () => {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = usePostListApi()
+  } = usePostListApi({ initialPage })
 
   useEffect(() => {
     const target = loadMoreRef.current
@@ -121,13 +123,15 @@ const PostList = () => {
   }
   return (
     <div className="my-6 min-h-[calc(100svh-81px)]">
-      <div className="grid w-full grid-cols-[repeat(auto-fit,384px)] justify-center gap-4">
-        {items.map((item) => (
-          <Link key={item.id} href={`/posts/${item.id}`}>
-            <PostListItemCard {...item} />
-          </Link>
+      <ol className="grid w-full list-none grid-cols-[repeat(auto-fit,384px)] justify-center gap-4 p-0">
+        {items.map((item, index) => (
+          <li key={item.id}>
+            <Link href={`/posts/${item.id}`} className="block h-full">
+              <PostListItemCard {...item} prioritizeImage={index === 0} />
+            </Link>
+          </li>
         ))}
-      </div>
+      </ol>
 
       {items.length === 0 && (
         <div className="flex min-h-40 items-center justify-center text-sm text-foreground/70">
