@@ -1,5 +1,11 @@
+import process from "node:process"
+
 /** @type {import('next').NextConfig} */
 const isProduction = process.env.NODE_ENV === "production"
+const cloudflareInsightsOrigins = [
+  "https://static.cloudflareinsights.com",
+  "https://cloudflareinsights.com",
+]
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -8,8 +14,8 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "img-src 'self' data: https: blob:",
   "font-src 'self' data: https:",
-  "connect-src 'self' https:",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `connect-src 'self' https: ${cloudflareInsightsOrigins.join(" ")}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${cloudflareInsightsOrigins.join(" ")}`,
   "style-src 'self' 'unsafe-inline'",
   "media-src 'self'",
   "manifest-src 'self'",
