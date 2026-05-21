@@ -16,7 +16,10 @@ export const validateAuthCredentials = (params: {
   username: unknown;
   password: unknown;
 }) => {
-  if (typeof params.username !== 'string' || typeof params.password !== 'string') {
+  if (
+    typeof params.username !== 'string' ||
+    typeof params.password !== 'string'
+  ) {
     throw new BadRequestException('username and password are required');
   }
 
@@ -79,9 +82,10 @@ const asRecord = (value: unknown) => {
 };
 
 @Injectable()
-export class ParseSignupRequestPipe
-  implements PipeTransform<unknown, SignupRequest>
-{
+export class ParseSignupRequestPipe implements PipeTransform<
+  unknown,
+  SignupRequest
+> {
   transform(value: unknown): SignupRequest {
     const record = asRecord(value);
 
@@ -93,7 +97,10 @@ export class ParseSignupRequestPipe
 }
 
 @Injectable()
-export class ParseLoginRequestPipe implements PipeTransform<unknown, LoginRequest> {
+export class ParseLoginRequestPipe implements PipeTransform<
+  unknown,
+  LoginRequest
+> {
   transform(value: unknown): LoginRequest {
     const record = asRecord(value);
 
@@ -105,9 +112,10 @@ export class ParseLoginRequestPipe implements PipeTransform<unknown, LoginReques
 }
 
 @Injectable()
-export class ParseRefreshTokenRequestPipe
-  implements PipeTransform<unknown, RefreshTokenRequest>
-{
+export class ParseRefreshTokenRequestPipe implements PipeTransform<
+  unknown,
+  RefreshTokenRequest
+> {
   transform(value: unknown): RefreshTokenRequest {
     const record = asRecord(value);
 

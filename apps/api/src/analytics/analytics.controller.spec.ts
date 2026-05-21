@@ -73,9 +73,15 @@ describe('AnalyticsController rate limiting', () => {
     };
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      await request(httpServer).post('/analytics/events').send(payload).expect(201);
+      await request(httpServer)
+        .post('/analytics/events')
+        .send(payload)
+        .expect(201);
     }
 
-    await request(httpServer).post('/analytics/events').send(payload).expect(429);
+    await request(httpServer)
+      .post('/analytics/events')
+      .send(payload)
+      .expect(429);
   });
 });

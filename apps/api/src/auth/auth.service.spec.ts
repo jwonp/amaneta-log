@@ -86,9 +86,7 @@ describe('AuthService', () => {
         .spyOn(service as never, 'verifyPassword')
         .mockResolvedValue(true as never);
 
-      await expect(
-        service.login('user', testPassword),
-      ).rejects.toBeInstanceOf(
+      await expect(service.login('user', testPassword)).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
     },
@@ -144,10 +142,7 @@ describe('AuthService', () => {
       ): Promise<unknown> => await callback({} as PrismaTransactionClient),
     );
 
-    const response = await service.signup(
-      '  alice  ',
-      testPassword,
-    );
+    const response = await service.signup('  alice  ', testPassword);
 
     expect(saveUserAuthSpy).toHaveBeenCalledWith(
       {

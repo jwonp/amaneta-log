@@ -46,7 +46,10 @@ const uploadInterceptorOptions = {
         file.mimetype as (typeof ALL_ALLOWED_MIME_TYPES)[number],
       )
     ) {
-      callback(new UnsupportedMediaTypeException('unsupported file type'), false);
+      callback(
+        new UnsupportedMediaTypeException('unsupported file type'),
+        false,
+      );
       return;
     }
 

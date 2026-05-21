@@ -96,5 +96,5 @@ describe('AuthController security', () => {
         password: testPassword,
       })
       .expect(429);
-});
+  });
 });

@@ -32,7 +32,9 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  async refresh(@Body(new ParseRefreshTokenRequestPipe()) body: RefreshTokenRequest) {
+  async refresh(
+    @Body(new ParseRefreshTokenRequestPipe()) body: RefreshTokenRequest,
+  ) {
     return await this.authService.refresh(body.refreshToken);
   }
 }
