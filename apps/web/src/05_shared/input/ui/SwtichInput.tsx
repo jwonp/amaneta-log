@@ -62,7 +62,7 @@ const SwtichInput = ({
   }
 
   return (
-    <div className="flex gap-4">
+    <div className="flex min-h-10 items-center justify-between gap-3 rounded-lg border border-input bg-[var(--surface-raised)] px-3 py-2.5">
       <input
         ref={setHiddenInputRef}
         id={`${id}-hidden`}
@@ -77,7 +77,9 @@ const SwtichInput = ({
       />
 
       <Switch id={id} checked={isOn} onCheckedChange={handleCheckedChange} />
-      <FieldLabel htmlFor={id}>{isOn ? label.on : label.off}</FieldLabel>
+      <FieldLabel htmlFor={id} className="text-sm text-[var(--text)]">
+        {isOn ? label.on : label.off}
+      </FieldLabel>
     </div>
   )
 }

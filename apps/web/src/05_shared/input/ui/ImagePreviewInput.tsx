@@ -108,7 +108,7 @@ const ImagePreviewInput = ({
     <>
       <label
         htmlFor={id}
-        className="group relative flex aspect-video w-full cursor-pointer items-center justify-center overflow-hidden rounded-xs border border-input bg-muted"
+        className="group relative flex aspect-video w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-input bg-[var(--surface-muted)] transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
       >
         {previewSrc ? (
           <Image
@@ -119,12 +119,12 @@ const ImagePreviewInput = ({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground" />
+          <div className="flex h-full w-full items-center justify-center bg-[var(--surface-muted)] text-sm text-[var(--text-muted)]" />
         )}
 
-        <div className="absolute inset-0 bg-background/55 transition-colors group-hover:bg-background/45" />
+        <div className="absolute inset-0 bg-background/50 transition-colors group-hover:bg-background/40" />
 
-        <div className="absolute flex flex-col items-center justify-center rounded-xs bg-background/75 px-6 py-4 text-foreground shadow-sm backdrop-blur-sm">
+        <div className="absolute flex flex-col items-center justify-center rounded-lg bg-background/78 px-6 py-4 text-[var(--text)] shadow-[var(--shadow-soft)] backdrop-blur-sm">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -142,7 +142,7 @@ const ImagePreviewInput = ({
             <path d="m9 15 3-3 3 3" />
           </svg>
 
-          <span className="text-base font-medium">
+          <span className="text-sm font-semibold">
             {previewSrc ? "이미지 교체" : "이미지 선택"}
           </span>
         </div>
@@ -150,7 +150,7 @@ const ImagePreviewInput = ({
         {previewSrc ? (
           <button
             type="button"
-            className="absolute top-3 right-3 rounded-xs bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm"
+            className="absolute top-3 right-3 rounded-md border border-border bg-background/85 px-3 py-1 text-xs font-medium text-[var(--text)] shadow-[var(--shadow-soft)]"
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()

@@ -18,7 +18,7 @@ const TextInput = ({
       ref={ref}
       className={
         className ??
-        "h-9 w-full min-w-0 rounded-none border-0 bg-background px-2.5 py-1 text-lg shadow-none ring-0 outline-none placeholder:text-muted-foreground focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-ring/0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-lg dark:bg-background"
+        "h-12 w-full min-w-0 rounded-lg border border-input bg-[var(--surface-raised)] px-4 py-3 text-lg text-[var(--text)] shadow-none placeholder:text-[var(--text-subtle)] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-lg dark:bg-input/30"
       }
       placeholder={placeholder}
       onBlur={(event) => {
