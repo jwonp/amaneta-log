@@ -20,17 +20,20 @@ const PostListItemCard = ({
   updatedAt,
   thumbnailSrc,
   author,
+  prioritizeImage = false,
 }: PostListItemCardProps) => {
   const id = useId()
   return (
-    <Card className="max-w-96 min-w-96 gap-0 rounded-none p-0">
+    <Card className="h-full max-w-96 min-w-96 gap-0 rounded-none p-0">
       <AspectRatio ratio={16 / 9} className="relative overflow-hidden">
         <Image
           src={thumbnailSrc || "/thumbnail-placeholder.svg"}
           fill
-          sizes="(max-width: 768px) 100vw, 600px"
-          alt="Blog thumbnail placeholder"
+          sizes="(max-width: 640px) 100vw, (max-width: 1200px) 50vw, 384px"
+          alt={`${title} 대표 이미지`}
           className="object-cover"
+          priority={prioritizeImage}
+          loading={prioritizeImage ? "eager" : "lazy"}
         />
       </AspectRatio>
       <div className="h-full w-full p-4">
@@ -51,7 +54,7 @@ const PostListItemCard = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-6">
-          <p className="line-clamp-4 text-sm leading-5.5 font-medium">
+          <p className="line-clamp-4 text-sm leading-5.5 font-medium text-foreground/85">
             {description}
           </p>
         </CardContent>
@@ -75,7 +78,7 @@ const PostListItemCard = ({
             </p>
           </div>
           <div className="flex items-center">
-            <p className="font-base px-0 text-xs leading-4 text-foreground/60">
+            <p className="font-base px-0 text-xs leading-4 text-foreground/80">
               {formatDate(updatedAt)}
             </p>
           </div>

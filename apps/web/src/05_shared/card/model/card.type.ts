@@ -13,4 +13,5 @@ export interface PostListItemCardProps extends Pick<
 > {
   thumbnailSrc?: string
   author: string
+  prioritizeImage?: boolean
 }

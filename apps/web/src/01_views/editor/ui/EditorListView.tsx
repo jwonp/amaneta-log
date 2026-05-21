@@ -1,4 +1,5 @@
 import EditorList from "@/src/02_widgets/editor/ui/EditorList"
+import ReactQueryClientProvider from "@/src/04_entities/query/ui/ReactQueryClientProvider"
 
 import { Button } from "@packages/ui/src/components/button"
 import { IconPlus } from "@tabler/icons-react"
@@ -15,7 +16,9 @@ const EditorListView = () => {
           </Button>
         </Link>
       </div>
-      <EditorList />
+      <ReactQueryClientProvider>
+        <EditorList />
+      </ReactQueryClientProvider>
     </div>
   )
 }

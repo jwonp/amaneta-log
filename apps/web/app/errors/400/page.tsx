@@ -1,4 +1,11 @@
 import ErrorScreen from "@/src/05_shared/error/ui/ErrorScreen"
+import type { Metadata } from "next"
+import { getNoIndexMetadata } from "@/src/05_shared/seo/lib/seo"
+
+export const metadata: Metadata = getNoIndexMetadata(
+  "400",
+  "잘못된 요청입니다."
+)
 
 const BAD_REQUEST_REASON_MAP: Record<
   string,
