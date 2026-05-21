@@ -210,6 +210,7 @@ type EditablePostListItemDto = {
   tags: string[]
   title: string
   description: string | null
+  createdAt: string
   updatedAt: string
   author: string
   thumbnailFileId: number | null
@@ -345,14 +346,14 @@ type EditorListFilters = {
 
 권장 매핑:
 
-| 카드 prop | 값 |
-| --- | --- |
-| `isPublic` | `item.isPublic` |
-| `tags` | `item.tags` |
-| `title` | `item.title` |
-| `description` | `item.description` |
-| `updatedAt` | `new Date(item.updatedAt)` |
-| `author` | `item.author` |
+| 카드 prop      | 값                                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `isPublic`     | `item.isPublic`                                                                                                        |
+| `tags`         | `item.tags`                                                                                                            |
+| `title`        | `item.title`                                                                                                           |
+| `description`  | `item.description`                                                                                                     |
+| `updatedAt`    | `new Date(item.updatedAt)`                                                                                             |
+| `author`       | `item.author`                                                                                                          |
 | `thumbnailSrc` | `item.thumbnailFileId ? /api/storage/${item.id}/files/${item.thumbnailFileId}/editable : "/thumbnail-placeholder.svg"` |
 
 주의:
