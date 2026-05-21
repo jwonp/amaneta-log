@@ -56,7 +56,7 @@ const EditorMarkdownField = ({
         <section className="w-full min-w-0">
           <textarea
             ref={textareaRef}
-            className="min-h-130 w-full min-w-0 resize-none overflow-hidden rounded-md bg-background p-4 text-sm leading-6 outline-none placeholder:text-muted-foreground focus-visible:border-none focus-visible:ring-0 focus-visible:ring-ring/0"
+            className="min-h-130 w-full min-w-0 resize-none overflow-hidden rounded-lg border border-input bg-[var(--surface-raised)] px-4 py-3 text-sm leading-6 text-[var(--text)] outline-none placeholder:text-[var(--text-subtle)] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             value={markdown}
             onChange={(event) => onMarkdownChange(event.target.value)}
             onSelect={syncSelection}
