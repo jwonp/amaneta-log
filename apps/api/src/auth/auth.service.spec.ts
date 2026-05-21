@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   const PASSWORD_FIELD = 'password' as const;
+  const testPassword = 'secure-password-123';
 
   const createService = () => {
     const transactionClient = {
@@ -85,7 +86,9 @@ describe('AuthService', () => {
         .spyOn(service as never, 'verifyPassword')
         .mockResolvedValue(true as never);
 
-      await expect(service.login('user', 'password')).rejects.toBeInstanceOf(
+      await expect(
+        service.login('user', testPassword),
+      ).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
     },
@@ -141,7 +144,10 @@ describe('AuthService', () => {
       ): Promise<unknown> => await callback({} as PrismaTransactionClient),
     );
 
-    const response = await service.signup('  alice  ', 'password123');
+    const response = await service.signup(
+      '  alice  ',
+      testPassword,
+    );
 
     expect(saveUserAuthSpy).toHaveBeenCalledWith(
       {
@@ -159,5 +165,13 @@ describe('AuthService', () => {
     );
     expect(response.username).toBe('alice');
     expect(response.name).toBe('alice');
+  });
+
+  it('rejects usernames with unsupported characters during signup', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.signup('bad username!', testPassword),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

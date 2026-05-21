@@ -10,6 +10,12 @@ import {
 const MAX_POST_LIST_LIMIT = 50;
 const DEFAULT_POST_LIST_LIMIT = 12;
 const BASE64_URL_PATTERN = /^[A-Za-z0-9_-]+$/;
+const MAX_QUERY_LENGTH = 120;
+const MAX_TAG_LENGTH = 30;
+const MAX_TAG_COUNT = 10;
+const MAX_TITLE_LENGTH = 120;
+const MAX_DESCRIPTION_LENGTH = 300;
+const MAX_MARKDOWN_LENGTH = 200_000;
 
 @Injectable()
 export class ParseGetPostListQueryPipe implements PipeTransform<
@@ -66,6 +72,18 @@ export class ParseGetPostListQueryPipe implements PipeTransform<
 
     if (fieldName === 'cursor' && !BASE64_URL_PATTERN.test(trimmed)) {
       throw new BadRequestException('cursor must be a base64url string');
+    }
+
+    if (fieldName === 'query' && trimmed.length > MAX_QUERY_LENGTH) {
+      throw new BadRequestException(
+        `query must be at most ${MAX_QUERY_LENGTH} characters`,
+      );
+    }
+
+    if (fieldName === 'tag' && trimmed.length > MAX_TAG_LENGTH) {
+      throw new BadRequestException(
+        `tag must be at most ${MAX_TAG_LENGTH} characters`,
+      );
     }
 
     return trimmed;
@@ -156,7 +174,21 @@ export class ParseSavePostRequestPipe implements PipeTransform<
       throw new BadRequestException(`${fieldName} must be a string`);
     }
 
-    return trim ? value.trim() : value;
+    const normalized = trim ? value.trim() : value;
+
+    if (fieldName === 'title' && normalized.length > MAX_TITLE_LENGTH) {
+      throw new BadRequestException(
+        `title must be at most ${MAX_TITLE_LENGTH} characters`,
+      );
+    }
+
+    if (fieldName === 'markdown' && normalized.length > MAX_MARKDOWN_LENGTH) {
+      throw new BadRequestException(
+        `markdown must be at most ${MAX_MARKDOWN_LENGTH} characters`,
+      );
+    }
+
+    return normalized;
   }
 
   private parseNullableString(value: unknown, fieldName: string) {
@@ -168,7 +200,18 @@ export class ParseSavePostRequestPipe implements PipeTransform<
       return null;
     }
 
-    return this.parseString(value, fieldName, true);
+    const normalized = this.parseString(value, fieldName, true);
+
+    if (
+      fieldName === 'description' &&
+      normalized.length > MAX_DESCRIPTION_LENGTH
+    ) {
+      throw new BadRequestException(
+        `description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
+      );
+    }
+
+    return normalized;
   }
 
   private parseTags(value: unknown): string[] {
@@ -179,7 +222,23 @@ export class ParseSavePostRequestPipe implements PipeTransform<
       throw new BadRequestException('tags must be an array of strings');
     }
 
-    return [...value];
+    if (value.length > MAX_TAG_COUNT) {
+      throw new BadRequestException(
+        `tags must contain at most ${MAX_TAG_COUNT} items`,
+      );
+    }
+
+    const normalizedTags = value.map((item) => item.trim());
+
+    if (
+      normalizedTags.some((item) => !item || item.length > MAX_TAG_LENGTH)
+    ) {
+      throw new BadRequestException(
+        `each tag must be between 1 and ${MAX_TAG_LENGTH} characters`,
+      );
+    }
+
+    return [...normalizedTags];
   }
 
   private parseBoolean(value: unknown, fieldName: string): boolean {
