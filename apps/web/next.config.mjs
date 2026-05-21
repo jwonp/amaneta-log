@@ -65,6 +65,16 @@ const nextConfig = {
         hostname: "placehold.co",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "blog.amaneta.me",
+        pathname: "/api/storage/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        pathname: "/api/storage/**",
+      },
     ],
   },
   async headers() {
