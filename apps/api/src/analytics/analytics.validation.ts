@@ -75,16 +75,18 @@ export const parseTrackAnalyticsEventRequest = (
 
   const body = input as Record<string, unknown>;
   const durationMs = parseOptionalInteger(body.durationMs, 'durationMs');
-  const scrollPercent = parseOptionalInteger(body.scrollPercent, 'scrollPercent');
+  const scrollPercent = parseOptionalInteger(
+    body.scrollPercent,
+    'scrollPercent',
+  );
 
   if (durationMs != null && durationMs < 0) {
-    throw new BadRequestException('durationMs must be greater than or equal to 0');
+    throw new BadRequestException(
+      'durationMs must be greater than or equal to 0',
+    );
   }
 
-  if (
-    scrollPercent != null &&
-    (scrollPercent < 0 || scrollPercent > 100)
-  ) {
+  if (scrollPercent != null && (scrollPercent < 0 || scrollPercent > 100)) {
     throw new BadRequestException('scrollPercent must be between 0 and 100');
   }
 
@@ -129,7 +131,9 @@ const parseDateBoundary = (
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    throw new BadRequestException(`invalid ${boundary === 'start' ? 'from' : 'to'} date`);
+    throw new BadRequestException(
+      `invalid ${boundary === 'start' ? 'from' : 'to'} date`,
+    );
   }
 
   return date;
