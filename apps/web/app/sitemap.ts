@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next"
 import { getPostList } from "@/src/03_features/post/api/postList.server"
 import { getSiteUrl } from "@/src/05_shared/seo/lib/seo"
 
-const SITEMAP_PAGE_LIMIT = 100
+const SITEMAP_PAGE_LIMIT = 50
 export const dynamic = "force-dynamic"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
