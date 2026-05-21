@@ -423,5 +423,4 @@ export class StorageService {
       throw new Error(`MinIO bucket does not exist: ${bucket}`);
     }
   }
-
 }

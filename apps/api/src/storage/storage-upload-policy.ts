@@ -86,7 +86,11 @@ export const assertUploadConstraints = (params: {
 }) => {
   const { allowedMimeTypes, maxBytes } = getUploadPolicy(params.usage);
 
-  if (!allowedMimeTypes.includes(params.mimeType as (typeof allowedMimeTypes)[number])) {
+  if (
+    !allowedMimeTypes.includes(
+      params.mimeType as (typeof allowedMimeTypes)[number],
+    )
+  ) {
     throw new UnsupportedMediaTypeException('unsupported file type');
   }
 

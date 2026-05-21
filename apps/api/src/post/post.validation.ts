@@ -230,9 +230,7 @@ export class ParseSavePostRequestPipe implements PipeTransform<
 
     const normalizedTags = value.map((item) => item.trim());
 
-    if (
-      normalizedTags.some((item) => !item || item.length > MAX_TAG_LENGTH)
-    ) {
+    if (normalizedTags.some((item) => !item || item.length > MAX_TAG_LENGTH)) {
       throw new BadRequestException(
         `each tag must be between 1 and ${MAX_TAG_LENGTH} characters`,
       );

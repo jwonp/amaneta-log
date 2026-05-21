@@ -166,7 +166,7 @@ export class AuthService {
       payload = await this.jwt.verifyAsync<RefreshTokenPayload>(
         normalizedRefreshToken,
         {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
         },
       );
     } catch {
