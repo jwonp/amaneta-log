@@ -22,7 +22,9 @@ coverage
 
 # Local environment files
 .env
+.env.*
 **/.env
+**/.env.*
 **/.env.local
 
 # Local docs and editor noise that are not needed in images
