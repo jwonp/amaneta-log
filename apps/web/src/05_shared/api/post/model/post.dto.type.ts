@@ -36,6 +36,7 @@ export interface EditablePostListItemDto {
   tags: string[]
   title: string
   description: string | null
+  createdAt: string
   updatedAt: string
   author: string
   thumbnailFileId: number | null
