@@ -145,6 +145,27 @@ enum StorageFileKind {
   OTHER
 }
 
+// -----------------------------
+// Analytics
+// -----------------------------
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  ENGAGEMENT
+}
+
+enum AnalyticsPageType {
+  POST_LIST
+  POST_DETAIL
+}
+
+enum DeviceCategory {
+  MOBILE
+  DESKTOP
+  TABLET
+  OTHER
+}
+
 model StorageFile {
   id Int @id @default(autoincrement())
 
@@ -174,4 +195,70 @@ model StorageFile {
   @@index([createdAt])
   @@index([orphanedAt])
   @@index([deletedAt])
+}
+
+model AnalyticsSession {
+  id              BigInt          @id @default(autoincrement())
+
+  sessionId       String          @unique
+  visitorId       String
+
+  landingPath     String
+  landingPostId   Int?
+  referrerHost    String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  deviceCategory  DeviceCategory?
+  timezone        String?
+
+  pageViewCount   Int             @default(0)
+  engagementCount Int             @default(0)
+  totalActiveMs   Int             @default(0)
+  isBounce        Boolean?        @default(true)
+
+  startedAt       DateTime        @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  events          AnalyticsEvent[]
+
+  @@index([visitorId])
+  @@index([startedAt])
+  @@index([landingPostId])
+  @@index([deviceCategory])
+}
+
+model AnalyticsEvent {
+  id             BigInt             @id @default(autoincrement())
+
+  createdAt      DateTime           @default(now())
+  visitorId      String
+  sessionId      String
+  session        AnalyticsSession   @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  eventType      AnalyticsEventType
+  pageType       AnalyticsPageType
+  pagePath       String
+  postId         Int?
+
+  referrerHost   String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  deviceCategory DeviceCategory?
+  timezone       String?
+
+  durationMs     Int?
+  scrollPercent  Int?
+  dedupeKey      String?            @unique
+
+  @@index([createdAt])
+  @@index([eventType])
+  @@index([pageType])
+  @@index([pagePath])
+  @@index([postId])
+  @@index([visitorId])
+  @@index([sessionId])
 }

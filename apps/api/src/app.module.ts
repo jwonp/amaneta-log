@@ -10,6 +10,7 @@ import { UserModule } from './user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PostModule } from './post/post.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     StorageModule,
     UserModule,
     PostModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService, UserService],
