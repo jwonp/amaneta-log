@@ -3,7 +3,6 @@ import MarkdownArticle from "@/src/04_entities/markdown/ui/MarkdownArticle"
 import { GetPostByIdResponse } from "@/src/05_shared/api/post/model/post.dto.type"
 import { Badge } from "@packages/ui/src/components/badge"
 import { Avatar, AvatarImage } from "@packages/ui/src/components/avatar"
-import { toAbsoluteUrl } from "@/src/05_shared/seo/lib/seo"
 
 const formatDate = (value: string | Date) =>
   new Intl.DateTimeFormat("ko-KR", {
@@ -19,11 +18,9 @@ const getThumbnailSrc = (postId: number, thumbnail?: string) => {
     return thumbnail
   }
 
-  return toAbsoluteUrl(
-    thumbnail.startsWith("/")
-      ? thumbnail
-      : `/api/storage/${postId}/files/${thumbnail}`
-  )
+  return thumbnail.startsWith("/")
+    ? thumbnail
+    : `/api/storage/${postId}/files/${thumbnail}`
 }
 
 const PostDetail = ({ postDetail }: { postDetail: GetPostByIdResponse }) => {

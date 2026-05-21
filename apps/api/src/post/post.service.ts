@@ -265,7 +265,7 @@ export class PostService {
         tags: post.tags,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
-        thumbnail: thumbnail?.kind,
+        thumbnail: thumbnail !== undefined ? String(thumbnail.id) : undefined,
       },
       author: { username: author.username, profileImage: author.profileImage },
       files: files.map(({ id, kind, storedName, mimeType }) => ({
