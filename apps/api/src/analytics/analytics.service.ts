@@ -52,6 +52,8 @@ export class AnalyticsService {
       };
     }
 
+    await this.ensureSession(payload);
+
     try {
       await this.prisma.analyticsEvent.create({
         data: {
@@ -86,7 +88,7 @@ export class AnalyticsService {
       throw error;
     }
 
-    await this.upsertSession(payload);
+    await this.applySessionEventMetrics(payload);
 
     return {
       accepted: true,
@@ -540,7 +542,7 @@ export class AnalyticsService {
     };
   }
 
-  private async upsertSession(payload: TrackAnalyticsEventRequest) {
+  private async ensureSession(payload: TrackAnalyticsEventRequest) {
     const existingSession = await this.prisma.analyticsSession.findUnique({
       where: {
         sessionId: payload.sessionId,
@@ -563,16 +565,25 @@ export class AnalyticsService {
           utmCampaign: payload.utmCampaign ?? null,
           deviceCategory: payload.deviceCategory ?? null,
           timezone: payload.timezone ?? null,
-          pageViewCount: payload.eventType === 'PAGE_VIEW' ? 1 : 0,
-          engagementCount: payload.eventType === 'ENGAGEMENT' ? 1 : 0,
-          totalActiveMs: payload.durationMs ?? 0,
+          pageViewCount: 0,
+          engagementCount: 0,
+          totalActiveMs: 0,
           endedAt: new Date(),
-          isBounce: payload.eventType === 'PAGE_VIEW',
+          isBounce: null,
         },
       });
-
-      return;
     }
+  }
+
+  private async applySessionEventMetrics(payload: TrackAnalyticsEventRequest) {
+    const existingSession = await this.prisma.analyticsSession.findUnique({
+      where: {
+        sessionId: payload.sessionId,
+      },
+      select: {
+        pageViewCount: true,
+      },
+    });
 
     await this.prisma.analyticsSession.update({
       where: {
@@ -594,7 +605,12 @@ export class AnalyticsService {
             ? { increment: payload.durationMs }
             : undefined,
         endedAt: new Date(),
-        isBounce: payload.eventType === 'PAGE_VIEW' ? false : false,
+        isBounce:
+          payload.eventType === 'PAGE_VIEW'
+            ? (existingSession?.pageViewCount ?? 0) > 0
+              ? false
+              : true
+            : false,
       },
     });
   }
