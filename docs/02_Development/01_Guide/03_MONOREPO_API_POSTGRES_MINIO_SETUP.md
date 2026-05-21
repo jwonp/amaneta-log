@@ -67,9 +67,11 @@ pnpm dlx @nestjs/cli new apps/api --package-manager pnpm --skip-git
 
 ## 6. 환경변수 체크
 
-- API: `DATABASE_URL`, `JWT_SECRET`, `MINIO_ENDPOINT`, `MINIO_BUCKET`
+- API: `DATABASE_URL`, `JWT_SECRET`, `MINIO_ENDPOINT`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - Web: `BACKEND_URL`
 - Docker Compose: 서비스 이름 기준 내부 호스트명 사용
+
+MinIO는 앱 전용 service account를 따로 두고, `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`는 bucket 생성과 운영 작업에만 사용하는 쪽을 권장한다.
 
 ## 7. 검증 순서
 

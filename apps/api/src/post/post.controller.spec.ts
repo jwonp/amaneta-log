@@ -86,4 +86,38 @@ describe('PostController validation', () => {
 
     expect(postService.getEditablePosts).not.toHaveBeenCalled();
   });
+
+  it('returns 400 for an oversized post title', async () => {
+    await request(httpServer)
+      .patch('/posts/1')
+      .send({
+        title: 'a'.repeat(121),
+        description: 'desc',
+        markdown: 'body',
+        tags: ['tag'],
+        isPublic: true,
+        saveMode: 'AUTO',
+        thumbnailId: null,
+      })
+      .expect(400);
+
+    expect(postService.savePost).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when too many tags are provided', async () => {
+    await request(httpServer)
+      .patch('/posts/1')
+      .send({
+        title: 'title',
+        description: 'desc',
+        markdown: 'body',
+        tags: Array.from({ length: 11 }, (_, index) => `tag-${index}`),
+        isPublic: true,
+        saveMode: 'AUTO',
+        thumbnailId: null,
+      })
+      .expect(400);
+
+    expect(postService.savePost).not.toHaveBeenCalled();
+  });
 });

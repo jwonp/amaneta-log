@@ -43,6 +43,8 @@ export const GET = async (_request: NextRequest, context: RouteContext) => {
       headers.set("ETag", etag)
     }
 
+    headers.set("X-Content-Type-Options", "nosniff")
+
     const nextResponse = new NextResponse(response.data as BodyInit, {
       status: response.status,
       headers,

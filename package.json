@@ -1,6 +1,6 @@
 {
   "name": "amaneta-log",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -20,5 +20,12 @@
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": "1.19.13",
+      "picomatch": "2.3.2",
+      "postcss": "8.5.10"
+    }
   }
 }

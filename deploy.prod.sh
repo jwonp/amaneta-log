@@ -65,6 +65,7 @@ docker run --rm \
     mc mb --ignore-existing "local/${MINIO_BUCKET}";
   '
 echo "MinIO bucket is ready: ${MINIO_BUCKET}"
+echo "NOTE: application containers should use MINIO_ACCESS_KEY/MINIO_SECRET_KEY service-account credentials, not root credentials."
 
 echo ""
 echo "6. Run Prisma migration"

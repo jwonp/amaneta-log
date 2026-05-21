@@ -5,8 +5,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  PayloadTooLargeException,
-  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import {
   DeleteObjectCommand,
@@ -35,16 +33,7 @@ import type {
   UploadPostFileParams,
   UploadPostFileResponse,
 } from './storage.type';
-
-const DEFAULT_CONTENT_IMAGE_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-const DEFAULT_THUMBNAIL_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const DEFAULT_CONTENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
-const DEFAULT_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
+import { assertUploadConstraints } from './storage-upload-policy';
 
 @Injectable()
 export class StorageService {
@@ -72,6 +61,7 @@ export class StorageService {
       usage,
       mimeType: params.file.mimetype,
       size: params.file.size,
+      buffer: params.file.buffer,
     });
 
     await this.assertWritablePost(params);
@@ -310,35 +300,9 @@ export class StorageService {
     usage: StorageFileUsage;
     mimeType: string;
     size: number;
+    buffer: Buffer;
   }) {
-    const allowedMimeTypes =
-      params.usage === StorageFileUsage.THUMBNAIL
-        ? this.readMimeTypeList(
-            'STORAGE_UPLOAD_ALLOWED_THUMBNAIL_MIME_TYPES',
-            DEFAULT_THUMBNAIL_MIME_TYPES,
-          )
-        : this.readMimeTypeList(
-            'STORAGE_UPLOAD_ALLOWED_CONTENT_MIME_TYPES',
-            DEFAULT_CONTENT_IMAGE_MIME_TYPES,
-          );
-    const maxBytes =
-      params.usage === StorageFileUsage.THUMBNAIL
-        ? this.readPositiveInteger(
-            'STORAGE_UPLOAD_MAX_THUMBNAIL_BYTES',
-            DEFAULT_THUMBNAIL_MAX_BYTES,
-          )
-        : this.readPositiveInteger(
-            'STORAGE_UPLOAD_MAX_CONTENT_IMAGE_BYTES',
-            DEFAULT_CONTENT_IMAGE_MAX_BYTES,
-          );
-
-    if (!allowedMimeTypes.includes(params.mimeType)) {
-      throw new UnsupportedMediaTypeException('file mime type is not allowed');
-    }
-
-    if (params.size > maxBytes) {
-      throw new PayloadTooLargeException('file size exceeds upload limit');
-    }
+    assertUploadConstraints(params);
   }
 
   private toReadableStream(body: GetObjectCommandOutput['Body']) {
@@ -460,30 +424,4 @@ export class StorageService {
     }
   }
 
-  private readMimeTypeList(key: string, fallback: string[]) {
-    const value = this.config.get<string>(key);
-
-    if (!value?.trim()) {
-      return fallback;
-    }
-
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
-  private readPositiveInteger(key: string, fallback: number) {
-    const rawValue = this.config.get<string>(key);
-
-    if (!rawValue) {
-      return fallback;
-    }
-
-    const parsedValue = Number.parseInt(rawValue, 10);
-
-    return Number.isFinite(parsedValue) && parsedValue > 0
-      ? parsedValue
-      : fallback;
-  }
 }

@@ -26,10 +26,13 @@ import { SaveUserResponse } from '../user/user.dto.type';
 import type { AccessTokenPayload, RefreshTokenPayload } from './auth.type';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { AuthTokenResponse, LoginResponse } from './auth.dto.type';
+import {
+  validateAuthCredentials,
+  validateRefreshTokenInput,
+} from './auth.validation';
 
 const scrypt = promisify(scryptCallback);
 const PASSWORD_HASH_LENGTH = 64;
-const PASSWORD_MIN_LENGTH = 8;
 const REFRESH_TOKEN_HASH_ALGORITHM = 'sha256';
 type DecodedJwtPayload = {
   exp?: number;
@@ -45,17 +48,10 @@ export class AuthService {
   ) {}
 
   async signup(username: string, password: string): Promise<SaveUserResponse> {
-    const normalizedUsername = username?.trim();
-
-    if (!normalizedUsername || !password) {
-      throw new BadRequestException('username and password are required');
-    }
-
-    if (password.length < PASSWORD_MIN_LENGTH) {
-      throw new BadRequestException(
-        `password must be at least ${PASSWORD_MIN_LENGTH} characters`,
-      );
-    }
+    const { username: normalizedUsername } = validateAuthCredentials({
+      username,
+      password,
+    });
 
     const passwordHash = await this.hashPassword(password);
 
@@ -95,11 +91,10 @@ export class AuthService {
   }
 
   async login(username: string, password: string): Promise<LoginResponse> {
-    const normalizedUsername = username?.trim();
-
-    if (!normalizedUsername || !password) {
-      throw new BadRequestException('username and password are required');
-    }
+    const { username: normalizedUsername } = validateAuthCredentials({
+      username,
+      password,
+    });
 
     const userAuth = await this.prisma.userAuth.findUnique({
       where: {
@@ -163,16 +158,17 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<AuthTokenResponse> {
-    if (!refreshToken?.trim()) {
-      throw new BadRequestException('refresh token is required');
-    }
+    const normalizedRefreshToken = validateRefreshTokenInput(refreshToken);
 
     let payload: RefreshTokenPayload;
 
     try {
-      payload = await this.jwt.verifyAsync<RefreshTokenPayload>(refreshToken, {
+      payload = await this.jwt.verifyAsync<RefreshTokenPayload>(
+        normalizedRefreshToken,
+        {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      });
+        },
+      );
     } catch {
       throw new BadRequestException('invalid refresh token');
     }
@@ -195,7 +191,7 @@ export class AuthService {
 
     this.assertActiveRefreshUser(user);
 
-    const refreshTokenHash = this.hashRefreshToken(refreshToken);
+    const refreshTokenHash = this.hashRefreshToken(normalizedRefreshToken);
     const now = new Date();
     const storedRefreshToken = await this.prisma.refreshToken.findUnique({
       where: {
