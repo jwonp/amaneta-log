@@ -124,10 +124,10 @@ const PostList = ({ initialPage }: { initialPage: GetPostListResponse }) => {
   return (
     <div className="my-6 min-h-[calc(100svh-81px)]">
       <ol className="grid w-full list-none grid-cols-[repeat(auto-fit,384px)] justify-center gap-4 p-0">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <li key={item.id}>
             <Link href={`/posts/${item.id}`} className="block h-full">
-              <PostListItemCard {...item} prioritizeImage={index === 0} />
+              <PostListItemCard {...item} />
             </Link>
           </li>
         ))}

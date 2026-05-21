@@ -41,8 +41,78 @@ type PageBreakdownAccessor = {
 };
 
 describe('AnalyticsService', () => {
+  it('creates a new session before inserting the first analytics event', async () => {
+    const prisma = {
+      analyticsSession: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          id: 1n,
+          sessionId: 'session-1',
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 1n,
+          sessionId: 'session-1',
+        }),
+      },
+      analyticsEvent: {
+        create: jest.fn().mockResolvedValue({
+          id: 1n,
+        }),
+      },
+    };
+
+    const service = new AnalyticsService(prisma as never);
+
+    await expect(
+      service.trackEvent({
+        visitorId: 'visitor-1',
+        sessionId: 'session-1',
+        eventType: 'PAGE_VIEW',
+        pageType: 'POST_LIST',
+        pagePath: '/posts',
+        dedupeKey: 'dedupe-key',
+      }),
+    ).resolves.toEqual({
+      accepted: true,
+      deduped: false,
+    });
+
+    expect(prisma.analyticsSession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sessionId: 'session-1',
+          visitorId: 'visitor-1',
+          landingPath: '/posts',
+          pageViewCount: 0,
+          engagementCount: 0,
+        }),
+      }),
+    );
+    expect(
+      prisma.analyticsSession.create.mock.invocationCallOrder[0],
+    ).toBeLessThan(prisma.analyticsEvent.create.mock.invocationCallOrder[0]);
+    expect(prisma.analyticsSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sessionId: 'session-1',
+        },
+        data: expect.objectContaining({
+          pageViewCount: { increment: 1 },
+          isBounce: true,
+        }),
+      }),
+    );
+  });
+
   it('treats duplicate dedupeKey as deduped success', async () => {
     const prisma = {
+      analyticsSession: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 1n,
+        }),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       analyticsEvent: {
         create: jest.fn().mockRejectedValue(
           new Prisma.PrismaClientKnownRequestError('duplicate', {
@@ -68,6 +138,7 @@ describe('AnalyticsService', () => {
       accepted: true,
       deduped: true,
     });
+    expect(prisma.analyticsSession.update).not.toHaveBeenCalled();
   });
 
   it('aggregates top-level overview metrics from pageviews and sessions', () => {

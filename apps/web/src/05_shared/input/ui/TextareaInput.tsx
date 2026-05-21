@@ -1,6 +1,7 @@
 "use client"
 
 import { type Ref, useRef, useState } from "react"
+import { Textarea } from "@packages/ui/src/components/textarea"
 
 interface TextareaInputProps {
   id: string
@@ -45,7 +46,7 @@ const TextareaInput = ({
 
   return (
     <>
-      <textarea
+      <Textarea
         id={id}
         rows={rows}
         value={textareaValue}
@@ -59,7 +60,7 @@ const TextareaInput = ({
 
           onChange?.(nextValue)
         }}
-        className="min-h-36 w-full min-w-0 resize-none rounded-xs border border-input bg-background px-5 py-4 text-sm leading-6 text-foreground outline-0 outline-none placeholder:text-muted-foreground focus:ring-0 focus-visible:ring-0 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-36 resize-none px-4 py-3 text-sm leading-6"
       />
 
       <input

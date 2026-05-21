@@ -1,5 +1,9 @@
 import TextareaInput from "@/src/05_shared/input/ui/TextareaInput"
-import { Field, FieldLabel } from "@packages/ui/src/components/field"
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from "@packages/ui/src/components/field"
 import { useId } from "react"
 import { EDITOR_FORM_NAME } from "../../model/EditorForm.const"
 interface EditorDescriptionFieldProps {
@@ -18,6 +22,9 @@ const EditorDescriptionField = ({
       <FieldLabel htmlFor={`${EDITOR_FORM_NAME.DESCRIPTION}-${id}`}>
         {"설명"}
       </FieldLabel>
+      <FieldDescription>
+        목록 카드와 공유 맥락에 노출될 짧은 소개를 입력합니다.
+      </FieldDescription>
       <TextareaInput
         id={`editor-description-${id}`}
         name={EDITOR_FORM_NAME.DESCRIPTION}

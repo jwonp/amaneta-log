@@ -1,5 +1,9 @@
 import SwtichInput from "@/src/05_shared/input/ui/SwtichInput"
-import { Field, FieldLabel } from "@packages/ui/src/components/field"
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from "@packages/ui/src/components/field"
 import { useId } from "react"
 import { EDITOR_FORM_NAME } from "../../model/EditorForm.const"
 interface EditorVisibilityFieldProps {
@@ -18,6 +22,9 @@ const EditorVisibilityField = ({
       <FieldLabel htmlFor={`${EDITOR_FORM_NAME.VISIBILITY}-${id}`}>
         {"공개 설정"}
       </FieldLabel>
+      <FieldDescription>
+        외부 노출 여부를 저장 전에 바로 확인할 수 있습니다.
+      </FieldDescription>
       <SwtichInput
         id={`${EDITOR_FORM_NAME.VISIBILITY}-${id}`}
         name={EDITOR_FORM_NAME.VISIBILITY}

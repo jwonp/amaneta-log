@@ -1,13 +1,12 @@
 services:
   web:
-    container_name: amaneta-log-web
     build:
       context: .
       dockerfile: apps/web/dockerfile.dev
     working_dir: /app/apps/web
     command: pnpm dev
     ports:
-      - "${WEB_PORT}:${WEB_PORT}"
+      - "${WEB_HOST_PORT}:${WEB_PORT}"
     env_file:
       - ./apps/web/.env
     volumes:
@@ -19,15 +18,14 @@ services:
       - api
 
   api:
-    container_name: amaneta-log-api
     build:
       context: .
       dockerfile: apps/api/dockerfile.dev
     working_dir: /app/apps/api
     command: pnpm dev
     ports:
-      - "${API_PORT}:${API_PORT}"
-      - "${API_PRISMA_STUDIO_PORT}:${API_PRISMA_STUDIO_PORT}"
+      - "${API_HOST_PORT}:${API_PORT}"
+      - "${API_PRISMA_STUDIO_HOST_PORT}:${API_PRISMA_STUDIO_PORT}"
     env_file:
       - ./apps/api/.env
     volumes:
@@ -39,11 +37,10 @@ services:
       - minio
 
   postgres:
-    container_name: amaneta-log-postgres
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - "${POSTGRES_HOST_PORT}:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -52,13 +49,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   minio:
-    container_name: amaneta-log-minio
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":${MINIO_CONSOLE_PORT}"
     ports:
-      - "${MINIO_PORT}:${MINIO_PORT}"
-      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
+      - "${MINIO_HOST_PORT}:${MINIO_PORT}"
+      - "${MINIO_CONSOLE_HOST_PORT}:${MINIO_CONSOLE_PORT}"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-amaneta_minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-amaneta_minio_password}

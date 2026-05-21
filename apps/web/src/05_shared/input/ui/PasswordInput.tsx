@@ -16,14 +16,14 @@ const PasswordInput = ({
     <div className="relative">
       <Input
         type={isShowPassword ? type || "text" : "password"}
-        className={className}
+        className={className ?? "pr-11"}
         {...props}
       />
       <Toggle
         aria-label="Toggle Password Visibility"
         size="sm"
         variant="default"
-        className="absolute top-0.5 right-2 hover:bg-transparent aria-pressed:bg-transparent"
+        className="absolute top-1/2 right-2 h-8 min-w-8 -translate-y-1/2 text-[var(--text-muted)] hover:bg-transparent hover:text-[var(--text)] aria-pressed:bg-transparent"
         onClick={() => {
           setShowPassword((prev) => !prev)
         }}

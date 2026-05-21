@@ -45,10 +45,12 @@ Prisma 마이그레이션:
 
 ```bash
 pnpm --filter api prisma:migrate:docker
+./deploy.dev.sh
 ```
 
 - Compose 개발 환경 기준 기본 마이그레이션 경로다.
 - 호스트 Prisma CLI는 `apps/api/.env`의 `PRISMA_DATABASE_URL`을 사용하고, 컨테이너 내부 런타임은 `DATABASE_URL`을 사용한다.
+- dev 서버에서는 호스트 Node 버전에 의존하지 않도록 `./deploy.dev.sh`로 컨테이너 내부 `prisma generate`와 `prisma migrate`를 실행할 수 있다.
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build

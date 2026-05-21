@@ -154,7 +154,7 @@ const TagInput = ({
   }
 
   return (
-    <div className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-2 rounded-xs border border-input bg-background px-2 py-1">
+    <div className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-2 rounded-lg border border-input bg-[var(--surface-raised)] px-3 py-2 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
       <input
         ref={setHiddenInputRef}
         type="hidden"
@@ -166,7 +166,7 @@ const TagInput = ({
       {tags.map((tag, index) => (
         <span
           key={tag}
-          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-xs bg-muted px-2 py-1 text-xs font-medium text-foreground"
+          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border border-transparent bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--text)]"
         >
           <span className="min-w-0 truncate">{`#${tag}`}</span>
           <button
@@ -179,7 +179,7 @@ const TagInput = ({
               event.preventDefault()
             }}
             onClick={() => removeTag(tag)}
-            className="rounded-xs text-muted-foreground hover:text-foreground"
+            className="rounded-sm text-[var(--text-muted)] hover:text-[var(--text)]"
             aria-label={`${tag} 태그 제거`}
           >
             <IconX className="size-3" />
@@ -194,7 +194,7 @@ const TagInput = ({
         onKeyDown={handleKeyDown}
         onBlur={() => addTag(inputValue)}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="min-w-0 flex-1 basis-24 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        className="min-w-0 flex-1 basis-24 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-subtle)]"
       />
     </div>
   )
