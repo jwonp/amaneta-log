@@ -56,7 +56,7 @@ export const buildThrottlerTracker = (request: RequestLike) => {
 
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
-  protected getTracker(req: Record<string, unknown>) {
-    return buildThrottlerTracker(req as RequestLike);
+  protected async getTracker(req: Record<string, unknown>) {
+    return await Promise.resolve(buildThrottlerTracker(req as RequestLike));
   }
 }
