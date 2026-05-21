@@ -1,6 +1,45 @@
 import { Prisma } from '../../generated/prisma/client.cjs';
 import { AnalyticsService } from './analytics.service';
 
+type OverviewMetricsAccessor = {
+  computeOverviewMetrics: (
+    pageViews: Array<{
+      createdAt: Date;
+      visitorId: string;
+      postId: number | null;
+    }>,
+    sessions: Array<{
+      visitorId: string;
+      startedAt: Date;
+      totalActiveMs: number;
+      pageViewCount: number;
+      isBounce: boolean | null;
+    }>,
+  ) => {
+    pageViews: number;
+    uniqueVisitors: number;
+    sessions: number;
+    bounceRate: number;
+    avgActiveMs: number;
+    pagesPerSession: number;
+  };
+};
+
+type PageBreakdownAccessor = {
+  buildPageBreakdown: (
+    items: Array<{
+      pagePath: string;
+      isBounce: boolean | null;
+    }>,
+    limit: number,
+  ) => Array<{
+    pagePath: string;
+    sessions: number;
+    bounces: number;
+    bounceRate: number;
+  }>;
+};
+
 describe('AnalyticsService', () => {
   it('treats duplicate dedupeKey as deduped success', async () => {
     const prisma = {
@@ -33,8 +72,10 @@ describe('AnalyticsService', () => {
 
   it('aggregates top-level overview metrics from pageviews and sessions', () => {
     const service = new AnalyticsService({} as never);
+    const { computeOverviewMetrics } =
+      service as unknown as OverviewMetricsAccessor;
 
-    const metrics = (service as any).computeOverviewMetrics(
+    const metrics = computeOverviewMetrics(
       [
         {
           createdAt: new Date('2026-05-20T00:00:00.000Z'),
@@ -82,8 +123,9 @@ describe('AnalyticsService', () => {
 
   it('builds page breakdown with bounce rate ordering', () => {
     const service = new AnalyticsService({} as never);
+    const { buildPageBreakdown } = service as unknown as PageBreakdownAccessor;
 
-    const items = (service as any).buildPageBreakdown(
+    const items = buildPageBreakdown(
       [
         {
           pagePath: '/posts',
