@@ -310,4 +310,110 @@ describe('PostService', () => {
       },
     ]);
   });
+
+  it('orders public posts by createdAt descending and builds a createdAt cursor', async () => {
+    const prismaService = {
+      post: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 30,
+            tags: ['alpha'],
+            title: 'newest',
+            description: 'desc',
+            createdAt: new Date('2026-05-20T12:00:00.000Z'),
+            updatedAt: new Date('2026-05-21T12:00:00.000Z'),
+            author: {
+              username: 'author',
+            },
+            files: [],
+          },
+          {
+            id: 20,
+            tags: ['beta'],
+            title: 'older',
+            description: 'desc',
+            createdAt: new Date('2026-05-19T12:00:00.000Z'),
+            updatedAt: new Date('2026-05-22T12:00:00.000Z'),
+            author: {
+              username: 'author',
+            },
+            files: [],
+          },
+        ]),
+      },
+    };
+    const service = new PostService(prismaService as never);
+
+    const response = await service.getPosts({ limit: 1 });
+
+    expect(prismaService.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
+    expect(response.items).toHaveLength(1);
+    expect(response.items[0]?.id).toBe(30);
+    expect(response.pageInfo.hasNextPage).toBe(true);
+    expect(response.pageInfo.nextCursor).toBe(
+      Buffer.from(
+        JSON.stringify({
+          createdAt: '2026-05-20T12:00:00.000Z',
+          id: 30,
+        }),
+        'utf8',
+      ).toString('base64url'),
+    );
+  });
+
+  it('applies public post cursors using createdAt instead of updatedAt', async () => {
+    const prismaService = {
+      post: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new PostService(prismaService as never);
+    const cursor = Buffer.from(
+      JSON.stringify({
+        createdAt: '2026-05-20T12:00:00.000Z',
+        id: 30,
+      }),
+      'utf8',
+    ).toString('base64url');
+
+    await service.getPosts({ cursor });
+
+    expect(prismaService.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              isPublic: true,
+              status: PostStatus.PUBLISHED,
+            },
+            {
+              OR: [
+                {
+                  createdAt: {
+                    lt: new Date('2026-05-20T12:00:00.000Z'),
+                  },
+                },
+                {
+                  AND: [
+                    {
+                      createdAt: new Date('2026-05-20T12:00:00.000Z'),
+                    },
+                    {
+                      id: {
+                        lt: 30,
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+  });
 });
