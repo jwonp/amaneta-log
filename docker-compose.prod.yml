@@ -8,7 +8,6 @@ services:
         WEB_PORT: ${WEB_PORT}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXTAUTH_URL: ${NEXTAUTH_URL}
-        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
         BACKEND_URL: ${BACKEND_URL}
     env_file:
       - .env.production
@@ -37,6 +36,9 @@ services:
         API_PORT: ${API_PORT}
     env_file:
       - .env.production
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
     ports:
       - "${API_PORT}:${API_PORT}"
       - "${API_PRISMA_STUDIO_PORT}:${API_PRISMA_STUDIO_PORT}"
@@ -99,8 +101,6 @@ services:
     expose:
       - "${MINIO_PORT}"
       - "${MINIO_CONSOLE_PORT}"
-    ports:
-      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
     volumes:
       - minio_prod_data:/data
     healthcheck:

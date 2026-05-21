@@ -2,16 +2,11 @@ import { createServerRequestApi } from "@/lib/api/requestApi"
 import { normalizeAppError, serializeAppError } from "@/lib/errors/app-error"
 import { NextRequest, NextResponse } from "next/server"
 import { HttpStatus } from "@/src/05_shared/api/common/model/api.const"
-
-const CONTENT_ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]
-const THUMBNAIL_ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"]
-const CONTENT_MAX_BYTES = 10 * 1024 * 1024
-const THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024
+import {
+  parseContentLengthHeader,
+  validateUpload,
+  validateUploadContentLength,
+} from "@/src/05_shared/upload/lib/uploadPolicy"
 
 type RouteContext = {
   params: Promise<{
@@ -21,6 +16,15 @@ type RouteContext = {
 
 export const POST = async (request: NextRequest, context: RouteContext) => {
   const requestApi = await createServerRequestApi(request)
+  const contentLengthValidationError = validateUploadContentLength(
+    parseContentLengthHeader(request.headers.get("content-length"))
+  )
+
+  if (contentLengthValidationError) {
+    return NextResponse.json(contentLengthValidationError.body, {
+      status: contentLengthValidationError.status,
+    })
+  }
 
   const { postId } = await context.params
   const formData = await request.formData()
@@ -34,7 +38,7 @@ export const POST = async (request: NextRequest, context: RouteContext) => {
     )
   }
 
-  const validationError = validateUpload(file, usage)
+  const validationError = await validateUpload(file, usage)
 
   if (validationError) {
     return NextResponse.json(validationError.body, {
@@ -63,30 +67,4 @@ export const POST = async (request: NextRequest, context: RouteContext) => {
 
     return requestApi.applyAuthToResponse(response)
   }
-}
-
-const validateUpload = (file: File, usage: string) => {
-  const allowedMimeTypes =
-    usage === "THUMBNAIL" ? THUMBNAIL_ALLOWED_MIME_TYPES : CONTENT_ALLOWED_MIME_TYPES
-  const maxBytes = usage === "THUMBNAIL" ? THUMBNAIL_MAX_BYTES : CONTENT_MAX_BYTES
-
-  if (!allowedMimeTypes.includes(file.type)) {
-    return {
-      status: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-      body: {
-        message: "unsupported file type",
-      },
-    }
-  }
-
-  if (file.size > maxBytes) {
-    return {
-      status: HttpStatus.PAYLOAD_TOO_LARGE,
-      body: {
-        message: "file size exceeds upload limit",
-      },
-    }
-  }
-
-  return null
 }
