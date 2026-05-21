@@ -76,13 +76,14 @@ export class PostService {
 
     const posts = await this.prismaService.post.findMany({
       where,
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: filters.limit + 1,
       select: {
         id: true,
         tags: true,
         title: true,
         description: true,
+        createdAt: true,
         updatedAt: true,
         author: {
           select: {
@@ -121,7 +122,7 @@ export class PostService {
         nextCursor:
           hasNextPage && lastItem
             ? this.encodePostListCursor({
-                updatedAt: lastItem.updatedAt,
+                createdAt: lastItem.createdAt,
                 id: lastItem.id,
               })
             : null,
@@ -632,14 +633,36 @@ export class PostService {
   }
 
   private decodePostListCursor(cursor: string | null) {
-    return this.decodeEditablePostListCursor(cursor);
+    if (!cursor) {
+      return null;
+    }
+
+    try {
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+      const parsed = JSON.parse(decoded) as { createdAt?: string; id?: number };
+
+      if (
+        !parsed.createdAt ||
+        typeof parsed.id !== 'number' ||
+        Number.isNaN(new Date(parsed.createdAt).getTime())
+      ) {
+        throw new Error('invalid cursor');
+      }
+
+      return {
+        createdAt: new Date(parsed.createdAt),
+        id: parsed.id,
+      };
+    } catch {
+      throw new BadRequestException('invalid cursor');
+    }
   }
 
   private createPostListWhere(params: {
     query: string | null;
     tag: string | null;
     cursor: {
-      updatedAt: Date;
+      createdAt: Date;
       id: number;
     } | null;
   }): Prisma.PostWhereInput {
@@ -672,16 +695,16 @@ export class PostService {
     }
 
     if (params.cursor) {
-      const olderUpdatedAtFilter: Prisma.PostWhereInput = {
-        updatedAt: {
-          lt: params.cursor.updatedAt,
+      const olderCreatedAtFilter: Prisma.PostWhereInput = {
+        createdAt: {
+          lt: params.cursor.createdAt,
         },
       };
 
-      const sameUpdatedAtOlderIdFilter: Prisma.PostWhereInput = {
+      const sameCreatedAtOlderIdFilter: Prisma.PostWhereInput = {
         AND: [
           {
-            updatedAt: params.cursor.updatedAt,
+            createdAt: params.cursor.createdAt,
           },
           {
             id: {
@@ -695,7 +718,7 @@ export class PostService {
         AND: [
           where,
           {
-            OR: [olderUpdatedAtFilter, sameUpdatedAtOlderIdFilter],
+            OR: [olderCreatedAtFilter, sameCreatedAtOlderIdFilter],
           },
         ],
       };
@@ -704,8 +727,14 @@ export class PostService {
     return where;
   }
 
-  private encodePostListCursor(params: { updatedAt: Date; id: number }) {
-    return this.encodeEditablePostListCursor(params);
+  private encodePostListCursor(params: { createdAt: Date; id: number }) {
+    return Buffer.from(
+      JSON.stringify({
+        createdAt: params.createdAt.toISOString(),
+        id: params.id,
+      }),
+      'utf8',
+    ).toString('base64url');
   }
 
   private parseEditablePostListQuery(query: GetEditablePostListQuery) {
