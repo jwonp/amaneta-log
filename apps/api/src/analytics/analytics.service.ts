@@ -106,7 +106,10 @@ export class AnalyticsService {
       range: this.serializeRange(range),
       totals: current,
       deltas: {
-        pageViews: this.calculateDeltaRate(current.pageViews, previous?.pageViews),
+        pageViews: this.calculateDeltaRate(
+          current.pageViews,
+          previous?.pageViews,
+        ),
         uniqueVisitors: this.calculateDeltaRate(
           current.uniqueVisitors,
           previous?.uniqueVisitors,
@@ -193,7 +196,10 @@ export class AnalyticsService {
       .sort((left, right) => left.date.localeCompare(right.date))
       .map((point) => ({
         ...point,
-        avgActiveMs: point.sessions > 0 ? Math.round(point.avgActiveMs / point.sessions) : 0,
+        avgActiveMs:
+          point.sessions > 0
+            ? Math.round(point.avgActiveMs / point.sessions)
+            : 0,
       }));
 
     return {
@@ -258,15 +264,13 @@ export class AnalyticsService {
         continue;
       }
 
-      const item =
-        summary.get(event.postId) ??
-        {
-          pageViews: 0,
-          visitors: new Set<string>(),
-          sessionIds: new Set<string>(),
-          totalActiveMs: 0,
-          bounces: 0,
-        };
+      const item = summary.get(event.postId) ?? {
+        pageViews: 0,
+        visitors: new Set<string>(),
+        sessionIds: new Set<string>(),
+        totalActiveMs: 0,
+        bounces: 0,
+      };
 
       item.pageViews += 1;
       item.visitors.add(event.visitorId);
@@ -279,15 +283,13 @@ export class AnalyticsService {
         continue;
       }
 
-      const item =
-        summary.get(session.landingPostId) ??
-        {
-          pageViews: 0,
-          visitors: new Set<string>(),
-          sessionIds: new Set<string>(),
-          totalActiveMs: 0,
-          bounces: 0,
-        };
+      const item = summary.get(session.landingPostId) ?? {
+        pageViews: 0,
+        visitors: new Set<string>(),
+        sessionIds: new Set<string>(),
+        totalActiveMs: 0,
+        bounces: 0,
+      };
 
       item.totalActiveMs += session.totalActiveMs;
       if (session.isBounce) {
@@ -325,9 +327,13 @@ export class AnalyticsService {
           pageViews: item?.pageViews ?? 0,
           uniqueVisitors: item?.visitors.size ?? 0,
           avgActiveMs:
-            sessionCount > 0 ? Math.round((item?.totalActiveMs ?? 0) / sessionCount) : 0,
+            sessionCount > 0
+              ? Math.round((item?.totalActiveMs ?? 0) / sessionCount)
+              : 0,
           bounceRate:
-            sessionCount > 0 ? Number((((item?.bounces ?? 0) / sessionCount) * 100).toFixed(1)) : 0,
+            sessionCount > 0
+              ? Number((((item?.bounces ?? 0) / sessionCount) * 100).toFixed(1))
+              : 0,
         };
       }),
     };
@@ -376,13 +382,11 @@ export class AnalyticsService {
 
     for (const session of sessions) {
       const referrerHost = session.referrerHost?.trim() || 'direct';
-      const item =
-        summary.get(referrerHost) ??
-        {
-          sessions: new Set<string>(),
-          visitors: new Set<string>(),
-          pageViews: 0,
-        };
+      const item = summary.get(referrerHost) ?? {
+        sessions: new Set<string>(),
+        visitors: new Set<string>(),
+        pageViews: 0,
+      };
 
       item.sessions.add(session.sessionId);
       item.visitors.add(session.visitorId);
@@ -391,13 +395,11 @@ export class AnalyticsService {
 
     for (const event of pageViews) {
       const referrerHost = event.referrerHost?.trim() || 'direct';
-      const item =
-        summary.get(referrerHost) ??
-        {
-          sessions: new Set<string>(),
-          visitors: new Set<string>(),
-          pageViews: 0,
-        };
+      const item = summary.get(referrerHost) ?? {
+        sessions: new Set<string>(),
+        visitors: new Set<string>(),
+        pageViews: 0,
+      };
 
       item.pageViews += 1;
       summary.set(referrerHost, item);
@@ -444,7 +446,8 @@ export class AnalyticsService {
     const total = sessions.length;
     const items = Array.from(counts.entries())
       .map(([deviceCategory, count]) => ({
-        deviceCategory: deviceCategory as AnalyticsDashboardDevicesResponse['items'][number]['deviceCategory'],
+        deviceCategory:
+          deviceCategory as AnalyticsDashboardDevicesResponse['items'][number]['deviceCategory'],
         sessions: count,
         share: total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0,
       }))
@@ -587,14 +590,19 @@ export class AnalyticsService {
         engagementCount:
           payload.eventType === 'ENGAGEMENT' ? { increment: 1 } : undefined,
         totalActiveMs:
-          payload.durationMs != null ? { increment: payload.durationMs } : undefined,
+          payload.durationMs != null
+            ? { increment: payload.durationMs }
+            : undefined,
         endedAt: new Date(),
         isBounce: payload.eventType === 'PAGE_VIEW' ? false : false,
       },
     });
   }
 
-  private async buildOverviewMetrics(from: Date, to: Date): Promise<OverviewMetrics> {
+  private async buildOverviewMetrics(
+    from: Date,
+    to: Date,
+  ): Promise<OverviewMetrics> {
     const [pageViews, sessions] = await Promise.all([
       this.prisma.analyticsEvent.findMany({
         where: {
@@ -706,7 +714,8 @@ export class AnalyticsService {
         sessionCount > 0
           ? Number(((bounceCount / sessionCount) * 100).toFixed(1))
           : 0,
-      avgActiveMs: sessionCount > 0 ? Math.round(totalActiveMs / sessionCount) : 0,
+      avgActiveMs:
+        sessionCount > 0 ? Math.round(totalActiveMs / sessionCount) : 0,
       pagesPerSession:
         sessionCount > 0 ? Number((totalPages / sessionCount).toFixed(2)) : 0,
     };
