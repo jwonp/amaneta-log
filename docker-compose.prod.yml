@@ -37,8 +37,8 @@ services:
     env_file:
       - .env.production
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "${API_PORT}:${API_PORT}"
       - "${API_PRISMA_STUDIO_PORT}:${API_PRISMA_STUDIO_PORT}"

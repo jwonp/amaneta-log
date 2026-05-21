@@ -18,8 +18,8 @@ export const s3Provider = {
       endpoint: `${protocol}://${endpoint}:${port}`,
       forcePathStyle: true,
       credentials: {
-        accessKeyId: config.getOrThrow<string>('MINIO_ACCESS_KEY'),
-        secretAccessKey: config.getOrThrow<string>('MINIO_SECRET_KEY'),
+        accessKeyId: config.getOrThrow<string>('MINIO_ROOT_USER'),
+        secretAccessKey: config.getOrThrow<string>('MINIO_ROOT_PASSWORD'),
       },
     });
   },
