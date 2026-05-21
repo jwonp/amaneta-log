@@ -77,30 +77,34 @@ describe('AnalyticsService', () => {
       deduped: false,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     expect(prisma.analyticsSession.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: expect.objectContaining({
           sessionId: 'session-1',
           visitorId: 'visitor-1',
           landingPath: '/posts',
           pageViewCount: 0,
           engagementCount: 0,
-        }) as any,
-      }) as any,
+        }),
+      }),
     );
     expect(
       prisma.analyticsSession.create.mock.invocationCallOrder[0],
     ).toBeLessThan(prisma.analyticsEvent.create.mock.invocationCallOrder[0]);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     expect(prisma.analyticsSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           sessionId: 'session-1',
         },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: expect.objectContaining({
           pageViewCount: { increment: 1 },
           isBounce: true,
-        }) as any,
-      }) as any,
+        }),
+      }),
     );
   });
 
