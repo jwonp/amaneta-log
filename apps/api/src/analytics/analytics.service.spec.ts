@@ -85,8 +85,8 @@ describe('AnalyticsService', () => {
           landingPath: '/posts',
           pageViewCount: 0,
           engagementCount: 0,
-        }),
-      }),
+        }) as any,
+      }) as any,
     );
     expect(
       prisma.analyticsSession.create.mock.invocationCallOrder[0],
@@ -99,8 +99,8 @@ describe('AnalyticsService', () => {
         data: expect.objectContaining({
           pageViewCount: { increment: 1 },
           isBounce: true,
-        }),
-      }),
+        }) as any,
+      }) as any,
     );
   });
 
