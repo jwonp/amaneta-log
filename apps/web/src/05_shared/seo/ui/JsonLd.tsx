@@ -1,3 +1,5 @@
+import { serializeJsonLd } from "../lib/serializeJsonLd"
+
 const JsonLd = ({
   data,
   id,
@@ -10,7 +12,7 @@ const JsonLd = ({
       id={id}
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(data),
+        __html: serializeJsonLd(data),
       }}
     />
   )
