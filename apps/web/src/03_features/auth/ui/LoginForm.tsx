@@ -11,6 +11,7 @@ import {
 } from "@packages/ui/src/components/card"
 import { Input } from "@packages/ui/src/components/input"
 import { Label } from "@packages/ui/src/components/label"
+import PasswordInput from "@/src/05_shared/input/ui/PasswordInput"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
@@ -69,8 +70,8 @@ const LoginForm = ({ callbackUrl }: { callbackUrl?: string }) => {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
+    <Card className="w-full max-w-sm border border-border bg-[var(--surface-raised)] shadow-[var(--shadow-soft)]">
+      <CardHeader className="gap-2">
         <CardTitle>Amaneta-Log</CardTitle>
         <CardDescription>로그인하여 인증을 완료해주세요.</CardDescription>
         <CardAction>
@@ -81,9 +82,9 @@ const LoginForm = ({ callbackUrl }: { callbackUrl?: string }) => {
       </CardHeader>
 
       <CardContent>
-        <form>
-          <div className="mb-6 flex flex-col gap-6">
-            <div className="grid gap-2">
+        <form className="space-y-6">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
               <Label htmlFor="email">{"Email"}</Label>
               <Input
                 id="email"
@@ -94,24 +95,25 @@ const LoginForm = ({ callbackUrl }: { callbackUrl?: string }) => {
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="space-y-1.5">
               <div className="flex items-center">
                 <Label htmlFor="password">{"Password"}</Label>
                 <a
                   href="#"
-                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                  className="ml-auto inline-block text-xs text-[var(--text-muted)] underline-offset-4 hover:text-primary hover:underline"
                 >
                   {"Forgot your password?"}
                 </a>
               </div>
 
-              <Input id="password" name="password" type="password" required />
+              <PasswordInput id="password" name="password" required />
             </div>
           </div>
 
-          <div>
+          <div className="pt-1">
             <Button
               type="submit"
+              size="lg"
               className="w-full"
               onClick={handleClickLogin}
               disabled={isSubmitting}

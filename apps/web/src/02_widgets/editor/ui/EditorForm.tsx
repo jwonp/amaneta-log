@@ -590,9 +590,9 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
         />
         <LayoutSeparator />
         <div className="min-w-0">
-          <section className="min-w-0 px-0 py-6 md:p-6">
+          <section className="min-w-0 rounded-xl border border-border bg-[var(--surface-raised)] px-4 py-5 shadow-[var(--shadow-soft)] md:p-6">
             <FieldGroup>
-              <section className="flex min-w-0 flex-col gap-10 md:flex-row">
+              <section className="flex min-w-0 flex-col gap-8 md:flex-row">
                 <div className="w-full min-w-0">
                   <EditorThumbnailField
                     initThumbnail={thumbnailPreviewSrc}

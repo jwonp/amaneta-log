@@ -19,7 +19,6 @@ const SignupForm = () => {
   const router = useRouter()
 
   const handleClickSubmit: MouseEventHandler<HTMLButtonElement> = (e) => {
-    console.log("hi")
     e.preventDefault()
     const form = e.currentTarget.form
     if (!form) return
@@ -44,13 +43,13 @@ const SignupForm = () => {
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader>
+      <CardHeader className="gap-2">
         <CardTitle className="text-center">Amaneta-Log</CardTitle>
       </CardHeader>
       <CardContent>
-        <form>
-          <div className="mb-6 flex flex-col gap-6">
-            <div className="grid gap-2">
+        <form className="space-y-6">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
               <Label htmlFor="email">{"Email"}</Label>
               <Input
                 id="email"
@@ -60,7 +59,7 @@ const SignupForm = () => {
                 required
               />
             </div>
-            <div className="grid gap-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">{"Password"}</Label>
               <PasswordInput
                 id={"password"}
@@ -69,9 +68,10 @@ const SignupForm = () => {
               />
             </div>
           </div>
-          <div>
+          <div className="pt-1">
             <Button
               type="submit"
+              size="lg"
               className="w-full"
               onClick={handleClickSubmit}
             >
