@@ -4,6 +4,7 @@
 
 ## 1. 문서 구성
 
+- [README.md](./README.md): 프로젝트 구조, 실행 명령, 문서 위치를 빠르게 보는 내부 안내
 - [02_Development/00_Plan/00_README.md](./02_Development/00_Plan/00_README.md): 실제 구현 순서와 범위를 정리한 실행 계획 문서 모음
 - [02_Development/01_Guide/00_README.md](./02_Development/01_Guide/00_README.md): 개발 중 축적된 설정 가이드, 구현 메모, 회고 문서 모음
 
