@@ -38,3 +38,8 @@ npm-debug.log*
 .pnpm-store
 .playwright-mcp
 .env.production
+
+docs
+
+.claude
+docs/00_README.md

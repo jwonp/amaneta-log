@@ -1,70 +1,23 @@
 # amaneta-log
 
-Next.js + NestJS 기반 블로그/에디터 모노레포다.
+`amaneta-log`는 콘텐츠 작성과 운영을 함께 다루는 블로그/에디터 플랫폼 모노레포다. 프론트엔드는 Next.js, 백엔드는 NestJS와 Prisma를 사용하며, 작성 화면, 공개 포스트 조회, 편집용 목록, 파일 스토리지 흐름까지 한 저장소에서 관리한다.
 
-## 1. 문서 목적
+## 핵심 구성
 
-- 이 문서는 현재 레포의 구조, 실행 진입점, 문서 위치를 빠르게 파악하기 위한 루트 인덱스다.
-- 상세 구현 계획은 `docs/` 하위 문서를 기준으로 관리한다.
+- `apps/web`: Next.js 16, React 19, React Query 기반 웹 애플리케이션
+- `apps/api`: NestJS 11, Prisma, PostgreSQL 기반 API 서버
+- `packages/ui`: 공용 UI 컴포넌트
+- `packages/eslint-config`, `packages/typescript-config`: 공용 개발 설정
 
-## 2. 프로젝트 구조
+## 주요 기능
 
-```text
-amaneta-log/
-├── apps/
-│   ├── web/            # Next.js 16, React 19, React Query 기반 프론트엔드
-│   └── api/            # NestJS 11, Prisma 기반 백엔드
-├── packages/
-│   ├── ui/             # 공용 UI 컴포넌트
-│   ├── eslint-config/  # 공용 ESLint 설정
-│   └── typescript-config/
-├── docs/               # PERFO 스타일 문서 인덱스와 실행 계획
-├── package.json
-├── pnpm-workspace.yaml
-└── turbo.json
-```
+- 게시물 작성과 수정 진입점이 연결된 에디터 플로우
+- 공개 글 목록과 편집용 글 목록에 대한 cursor 기반 조회
+- 첨부 파일 상태 전이(`TEMP -> ATTACHED -> ORPHANED -> DELETED`)를 포함한 스토리지 관리
+- Turborepo 기반 모노레포 개발 환경과 앱 단위 실행
 
-## 3. 주요 실행 명령
+## 기술 스택
 
-```bash
-pnpm install
-pnpm dev
-pnpm build
-pnpm lint
-pnpm typecheck
-```
-
-개별 앱 실행:
-
-```bash
-pnpm --filter web dev
-pnpm --filter api dev
-```
-
-Prisma 마이그레이션:
-
-```bash
-pnpm --filter api prisma:migrate:docker
-./deploy.dev.sh
-```
-
-- Compose 개발 환경 기준 기본 마이그레이션 경로다.
-- 호스트 Prisma CLI는 `apps/api/.env`의 `PRISMA_DATABASE_URL`을 사용하고, 컨테이너 내부 런타임은 `DATABASE_URL`을 사용한다.
-- dev 서버에서는 호스트 Node 버전에 의존하지 않도록 `./deploy.dev.sh`로 컨테이너 내부 `prisma generate`와 `prisma migrate`를 실행할 수 있다.
-
-```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-```
-
-## 4. 문서 맵
-
-- [docs/00_README.md](./docs/00_README.md): 전체 문서 인덱스와 라벨링 규칙
-- [docs/02_Development/00_Plan/00_README.md](./docs/02_Development/00_Plan/00_README.md): 구현 계획 문서 인덱스
-- [docs/02_Development/01_Guide/00_README.md](./docs/02_Development/01_Guide/00_README.md): 개발 가이드와 회고 문서 인덱스
-
-## 5. 현재 구현 메모
-
-- 에디터 작성 플로우는 초안 작성과 수정 진입점이 이미 연결돼 있다.
-- 공개 글 목록 `GET /posts`와 편집용 목록 `GET /posts/editable`가 cursor 기반으로 동작한다.
-- 에디터 목록은 `EditorList`와 `useEditorListApi`가 연결돼 있고, 무한스크롤과 썸네일 매핑까지 포함해 사용 중이다.
-- 스토리지는 공개 프록시와 편집용 보호 경로를 모두 제공하고, `TEMP -> ATTACHED -> ORPHANED -> DELETED` 상태 전이와 cleanup cron이 구현돼 있다.
+- Frontend: Next.js, React, TanStack Query
+- Backend: NestJS, Prisma, PostgreSQL
+- Tooling: pnpm, Turborepo, TypeScript, ESLint, Prettier
