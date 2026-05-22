@@ -14,6 +14,7 @@ import LogoutButton from "@/src/04_entities/header/ui/LogoutButton"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth/next-auth.config"
 import { getDefaultMetadata } from "@/src/05_shared/seo/lib/seo"
+import ThemeButton from "@/src/04_entities/header/ui/ThemeButton"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -65,11 +66,10 @@ export default async function RootLayout({
                     </ul>
                   ) : null}
                 </div>
-                {session ? (
-                  <div className="px-4">
-                    <LogoutButton />
-                  </div>
-                ) : null}
+                <div className="flex gap-2 px-4">
+                  <ThemeButton />
+                  {session ? <LogoutButton /> : null}
+                </div>
               </nav>
             </header>
             <main id="main-content">{children}</main>

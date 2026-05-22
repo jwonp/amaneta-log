@@ -2,8 +2,10 @@ import { Button } from "@packages/ui/src/components/button"
 import { Label } from "@packages/ui/src/components/label"
 import { cn } from "@packages/ui/src/lib/utils"
 
-interface HeaderMenuButtonProps
-  extends Omit<React.ComponentProps<"button">, "children"> {
+interface HeaderMenuButtonProps extends Omit<
+  React.ComponentProps<"button">,
+  "children"
+> {
   label: string
   isSelected?: boolean
   asChild?: boolean
