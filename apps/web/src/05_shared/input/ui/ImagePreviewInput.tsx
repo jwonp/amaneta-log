@@ -117,6 +117,7 @@ const ImagePreviewInput = ({
             fill
             sizes="(max-width: 768px) 100vw, 600px"
             className="h-full w-full object-cover"
+            unoptimized
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[var(--surface-muted)] text-sm text-[var(--text-muted)]" />
