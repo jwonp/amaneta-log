@@ -40,6 +40,7 @@ const EditorListItemCard = ({
           sizes="(max-width: 768px) 100vw, 600px"
           alt="Blog thumbnail placeholder"
           className="object-cover"
+          unoptimized
         />
       </AspectRatio>
       <div className="h-full w-full p-4">
