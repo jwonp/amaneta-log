@@ -28,6 +28,7 @@ import {
 } from "@/src/04_entities/editor/model/editorField.type"
 import { HttpStatus } from "@/src/05_shared/api/common/model/api.const"
 import { UploadPostFileResponse } from "@/src/05_shared/api/storage/model/storage.dto.type"
+import { getEditableStorageFileUrl } from "@/src/05_shared/api/storage/lib/storageFileUrl"
 import { normalizeAppError } from "@/lib/errors/app-error"
 import { isSessionRecoveryErrorCode } from "@/src/05_shared/api/common/model/auth-error"
 
@@ -74,7 +75,7 @@ const EditorForm = ({ post, files, onSaveStateChange }: EditorFormProps) => {
   const [formState, setFormState] = useState<EditorFormState>(initialState)
   const [thumbnailPreviewSrc, setThumbnailPreviewSrc] = useState<
     string | undefined
-  >(thumbnail ? `/api/storage/${post.id}/files/${thumbnail.id}` : undefined)
+  >(getEditableStorageFileUrl(post.id, thumbnail?.id))
   const [saveState, setSaveState] = useState<EditorSaveState>({
     status: "idle",
     lastSavedAt: post.updatedAt ? new Date(post.updatedAt).toISOString() : null,

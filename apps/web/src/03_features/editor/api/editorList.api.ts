@@ -8,6 +8,7 @@ import {
 import { useInfiniteQuery } from "@tanstack/react-query"
 import axios from "axios"
 import { EditorListItemCardProps } from "@/src/05_shared/card/model/card.type"
+import { getEditableStorageFileUrl } from "@/src/05_shared/api/storage/lib/storageFileUrl"
 
 const DEFAULT_LIMIT = 12
 
@@ -41,9 +42,7 @@ const createSearchParams = (
 const mapEditablePostListItem = (
   item: GetEditablePostListResponse["items"][number]
 ): EditorListItemCardProps => {
-  const thumbnailSrc = item.thumbnailFileId
-    ? `/api/storage/${item.id}/files/${item.thumbnailFileId}`
-    : undefined
+  const thumbnailSrc = getEditableStorageFileUrl(item.id, item.thumbnailFileId)
 
   const cardItem: EditorListItemCardProps = {
     id: item.id,
