@@ -49,7 +49,7 @@ export default async function RootLayout({
             <header className="w-full border-b border-b-muted">
               <nav
                 aria-label="주요 메뉴"
-                className="flex min-h-14 w-full max-w-screen-2xl items-center justify-between px-2"
+                className="flex min-h-14 w-full items-center justify-between px-2"
               >
                 <div className="flex items-center gap-2">
                   <Logo />
