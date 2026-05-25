@@ -78,7 +78,7 @@ export class AuthService {
       return user;
     });
 
-    const saveUserReponse: SaveUserResponse = {
+    const saveUserResponse: SaveUserResponse = {
       username: user.username,
       name: user.name,
       email: user.email,
@@ -87,7 +87,7 @@ export class AuthService {
       createdAt: user.createdAt,
     };
 
-    return saveUserReponse;
+    return saveUserResponse;
   }
 
   async login(username: string, password: string): Promise<LoginResponse> {
