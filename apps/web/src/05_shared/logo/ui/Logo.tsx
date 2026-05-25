@@ -14,12 +14,12 @@ const Logo = () => {
       <Image
         className="block h-6 w-auto dark:hidden"
         src={LogoSvg}
-        alt="Amaneta Log"
+        alt=""
       />
       <Image
         className="hidden h-6 w-auto dark:block"
         src={LogoWhiteSvg}
-        alt="Amaneta Log"
+        alt=""
       />
     </Link>
   )

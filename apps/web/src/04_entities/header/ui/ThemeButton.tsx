@@ -10,6 +10,7 @@ const ThemeButton = () => {
   return (
     <Button
       variant={"ghost"}
+      aria-label={resolvedTheme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
       onPointerDown={() =>
         setTheme(resolvedTheme === "dark" ? "light" : "dark")
       }
