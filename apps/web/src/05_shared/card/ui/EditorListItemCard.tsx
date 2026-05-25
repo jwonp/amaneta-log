@@ -80,7 +80,7 @@ const EditorListItemCard = ({
             </p>
           </div>
           <div className="flex items-center">
-            <p className="font-base px-0 text-xs leading-4 text-foreground/60">
+            <p className="font-base px-0 text-xs leading-4 text-foreground/60" suppressHydrationWarning>
               {formatDate(updatedAt)}
             </p>
           </div>
