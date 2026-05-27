@@ -61,6 +61,7 @@ export interface GetPostListQuery {
   cursor?: string
   query?: string
   tag?: string
+  sort?: "newest" | "oldest"
 }
 export type PostListItemDto = Omit<EditablePostListItemDto, "isPublic">
 
