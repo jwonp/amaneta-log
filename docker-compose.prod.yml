@@ -104,11 +104,7 @@ services:
     volumes:
       - minio_prod_data:/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -q -O /dev/null http://127.0.0.1:${MINIO_PORT}/minio/health/live || exit 1",
-        ]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
       retries: 20
