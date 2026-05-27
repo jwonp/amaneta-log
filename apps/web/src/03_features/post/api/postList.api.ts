@@ -25,6 +25,7 @@ export const usePostListApi = ({
       filters.limit ?? DEFAULT_POST_LIST_LIMIT,
       filters.query ?? null,
       filters.tag ?? null,
+      filters.sort ?? "newest",
     ],
     initialPageParam: null as string | null,
     initialData: initialPage

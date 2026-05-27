@@ -26,6 +26,10 @@ export const createPostListSearchParams = (
     searchParams.set("tag", filters.tag.trim())
   }
 
+  if (filters.sort && filters.sort !== "newest") {
+    searchParams.set("sort", filters.sort)
+  }
+
   return searchParams
 }
 

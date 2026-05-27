@@ -7,11 +7,13 @@ import {
   CardFooter,
 } from "@packages/ui/src/components/card"
 import { Skeleton } from "@packages/ui/src/components/skeleton"
+import { Button } from "@packages/ui/src/components/button"
 import Link from "next/link"
 import { useRef, useEffect } from "react"
 import { usePostListApi } from "@/src/03_features/post/api/postList.api"
 import PostListItemCard from "@/src/05_shared/card/ui/PostListItemCard"
 import { GetPostListResponse } from "@/src/05_shared/api/post/model/post.dto.type"
+import type { SortOrder } from "@/src/03_features/post/filter/model/sort.type"
 
 const SKELETON_CARD_COUNT = 6
 
@@ -63,8 +65,24 @@ const PostListSkeletonGrid = ({ count }: { count: number }) => {
   )
 }
 
-const PostList = ({ initialPage }: { initialPage: GetPostListResponse }) => {
+interface PostListProps {
+  initialPage?: GetPostListResponse
+  selectedTags?: string[]
+  sort?: SortOrder
+  onClearFilters?: () => void
+}
+
+const PostList = ({
+  initialPage,
+  selectedTags = [],
+  sort = "newest",
+  onClearFilters,
+}: PostListProps) => {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const filters = {
+    ...(selectedTags.length > 0 && { tag: selectedTags.join(",") }),
+    sort,
+  }
   const {
     items,
     isLoading,
@@ -73,7 +91,10 @@ const PostList = ({ initialPage }: { initialPage: GetPostListResponse }) => {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = usePostListApi({ initialPage })
+  } = usePostListApi({
+    filters,
+    initialPage: selectedTags.length === 0 && sort === "newest" ? initialPage : undefined,
+  })
 
   useEffect(() => {
     const target = loadMoreRef.current
@@ -134,8 +155,17 @@ const PostList = ({ initialPage }: { initialPage: GetPostListResponse }) => {
       </ol>
 
       {items.length === 0 && (
-        <div className="flex min-h-40 items-center justify-center text-sm text-foreground/70">
-          아직 작성한 게시물이 없습니다.
+        <div className="flex min-h-60 flex-col items-center justify-center gap-4">
+          <p className="text-sm text-foreground/60">
+            {selectedTags.length > 0
+              ? "선택한 태그에 해당하는 게시물이 없습니다."
+              : "아직 작성한 게시물이 없습니다."}
+          </p>
+          {selectedTags.length > 0 && onClearFilters && (
+            <Button variant="outline" size="sm" onClick={onClearFilters}>
+              전체 해제
+            </Button>
+          )}
         </div>
       )}
 
