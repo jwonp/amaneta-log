@@ -161,6 +161,19 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: "/favicon-48x48.png",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
     ]
   },
   async redirects() {

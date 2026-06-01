@@ -32,6 +32,14 @@ export const getDefaultMetadata = (): Metadata => ({
     template: `%s | ${DEFAULT_TITLE}`,
   },
   description: DEFAULT_DESCRIPTION,
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-48x48.png", sizes: "48x48", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     locale: "ko_KR",
