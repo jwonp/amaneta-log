@@ -39,12 +39,23 @@ export interface GetEditablePostListQuery {
   tag?: string;
 }
 
+export type PostSortOrder = 'newest' | 'oldest';
+
 export interface GetPostListQuery {
   limit?: number;
   cursor?: string;
   query?: string;
   tag?: string;
+  sort?: PostSortOrder;
 }
+
+export interface GetTagListItem {
+  slug: string;
+  label: string;
+  count: number;
+}
+
+export type GetTagListResponse = GetTagListItem[];
 
 export interface EditablePostListItemDto {
   id: number;
@@ -81,7 +92,8 @@ export interface GetPostListResponse {
   };
   appliedFilters: {
     query: string | null;
-    tag: string | null;
+    tags: string[];
+    sort: PostSortOrder;
     limit: number;
   };
 }

@@ -12,9 +12,11 @@ import {
   GetEditablePostByIdResponse,
   GetPostByIdResponse,
   GetPostDraftIdResponse,
+  PostSortOrder,
   SavePostMode,
   SavePostRequset,
   GetPostListQuery,
+  GetTagListResponse,
   SavePostResponse,
 } from './post.dto.type';
 import {
@@ -65,18 +67,43 @@ export class PostService {
     };
   }
 
+  async getTags(): Promise<GetTagListResponse> {
+    const posts = await this.prismaService.post.findMany({
+      where: {
+        isPublic: true,
+        status: PostStatus.PUBLISHED,
+      },
+      select: {
+        tags: true,
+      },
+    });
+
+    const tagCounts = new Map<string, number>();
+    for (const post of posts) {
+      for (const slug of post.tags) {
+        tagCounts.set(slug, (tagCounts.get(slug) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(tagCounts.entries())
+      .map(([slug, count]) => ({ slug, label: slug, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   async getPosts(query: GetPostListQuery) {
     const filters = this.parsePostListQuery(query);
     const cursor = this.decodePostListCursor(filters.cursor);
     const where = this.createPostListWhere({
       query: filters.query,
-      tag: filters.tag,
+      tags: filters.tags,
+      sort: filters.sort,
       cursor,
     });
+    const dir = filters.sort === 'oldest' ? 'asc' : 'desc';
 
     const posts = await this.prismaService.post.findMany({
       where,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ createdAt: dir }, { id: dir }],
       take: filters.limit + 1,
       select: {
         id: true,
@@ -131,7 +158,8 @@ export class PostService {
       },
       appliedFilters: {
         query: filters.query,
-        tag: filters.tag,
+        tags: filters.tags,
+        sort: filters.sort,
         limit: filters.limit,
       },
     };
@@ -624,13 +652,17 @@ export class PostService {
 
   private parsePostListQuery(query: GetPostListQuery) {
     const normalizedQuery = query.query?.trim() || null;
-    const normalizedTag = query.tag?.trim() || null;
+    const rawTag = query.tag?.trim() || null;
+    const tags = rawTag
+      ? rawTag.split(',').map((t) => t.trim()).filter(Boolean)
+      : [];
 
     return {
       limit: query.limit ?? 12,
       cursor: query.cursor?.trim() || null,
       query: normalizedQuery,
-      tag: normalizedTag,
+      tags,
+      sort: query.sort ?? 'newest',
     };
   }
 
@@ -662,7 +694,8 @@ export class PostService {
 
   private createPostListWhere(params: {
     query: string | null;
-    tag: string | null;
+    tags: string[];
+    sort: PostSortOrder;
     cursor: {
       createdAt: Date;
       id: number;
@@ -690,38 +723,30 @@ export class PostService {
       ];
     }
 
-    if (params.tag) {
+    if (params.tags.length > 0) {
       where.tags = {
-        has: params.tag,
+        hasSome: params.tags,
       };
     }
 
     if (params.cursor) {
-      const olderCreatedAtFilter: Prisma.PostWhereInput = {
-        createdAt: {
-          lt: params.cursor.createdAt,
-        },
+      const op = params.sort === 'oldest' ? 'gt' : 'lt';
+
+      const nextPageCreatedAtFilter: Prisma.PostWhereInput = {
+        createdAt: { [op]: params.cursor.createdAt },
       };
 
-      const sameCreatedAtOlderIdFilter: Prisma.PostWhereInput = {
+      const sameCreatedAtNextIdFilter: Prisma.PostWhereInput = {
         AND: [
-          {
-            createdAt: params.cursor.createdAt,
-          },
-          {
-            id: {
-              lt: params.cursor.id,
-            },
-          },
+          { createdAt: params.cursor.createdAt },
+          { id: { [op]: params.cursor.id } },
         ],
       };
 
       return {
         AND: [
           where,
-          {
-            OR: [olderCreatedAtFilter, sameCreatedAtOlderIdFilter],
-          },
+          { OR: [nextPageCreatedAtFilter, sameCreatedAtNextIdFilter] },
         ],
       };
     }

@@ -22,6 +22,7 @@ import type {
   GetEditablePostByIdResponse,
   GetPostByIdResponse,
   GetPostDraftIdResponse,
+  GetTagListResponse,
   SavePostRequset,
   GetPostListQuery,
   GetPostListResponse,
@@ -60,6 +61,11 @@ export class PostController {
       },
       query,
     );
+  }
+
+  @Get('tags')
+  async getTags(): Promise<GetTagListResponse> {
+    return await this.postService.getTags();
   }
 
   @Get(':postId')

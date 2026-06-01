@@ -3,6 +3,7 @@ import {
   EditablePostListVisibility,
   GetEditablePostListQuery,
   GetPostListQuery,
+  PostSortOrder,
   SavePostMode,
   SavePostRequset,
 } from './post.dto.type';
@@ -30,7 +31,20 @@ export class ParseGetPostListQueryPipe implements PipeTransform<
       cursor: this.parseOptionalString(record.cursor, 'cursor'),
       query: this.parseOptionalString(record.query, 'query'),
       tag: this.parseOptionalString(record.tag, 'tag'),
+      sort: this.parseSort(record.sort),
     };
+  }
+
+  protected parseSort(value: unknown): PostSortOrder {
+    if (value === undefined || value === 'newest') {
+      return 'newest';
+    }
+
+    if (value === 'oldest') {
+      return 'oldest';
+    }
+
+    throw new BadRequestException('sort must be newest or oldest');
   }
 
   private asRecord(value: unknown) {
