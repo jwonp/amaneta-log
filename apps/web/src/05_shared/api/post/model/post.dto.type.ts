@@ -73,7 +73,8 @@ export interface GetPostListResponse {
   }
   appliedFilters: {
     query: string | null
-    tag: string | null
+    tags: string[]
+    sort: "newest" | "oldest"
     limit: number
   }
 }
