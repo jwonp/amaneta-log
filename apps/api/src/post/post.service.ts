@@ -654,7 +654,10 @@ export class PostService {
     const normalizedQuery = query.query?.trim() || null;
     const rawTag = query.tag?.trim() || null;
     const tags = rawTag
-      ? rawTag.split(',').map((t) => t.trim()).filter(Boolean)
+      ? rawTag
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
       : [];
 
     return {
