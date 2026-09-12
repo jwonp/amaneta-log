@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import PostList from "./PostList"
 import PostTagFilterBar from "@/src/03_features/post/filter/ui/PostTagFilterBar"
 import PostSortSelect from "@/src/03_features/post/filter/ui/PostSortSelect"
-import ActiveTagFilters from "@/src/03_features/post/filter/ui/ActiveTagFilters"
 import {
   parseTagsFromQuery,
   stringifyTagsToQuery,
@@ -79,11 +78,6 @@ const PostListClient = ({ initialPage }: PostListClientProps) => {
     [router, buildParams]
   )
 
-  const removeTag = useCallback(
-    (slug: string) => updateTags(selectedTags.filter((t) => t !== slug)),
-    [selectedTags, updateTags]
-  )
-
   const clearAll = useCallback(() => updateTags([]), [updateTags])
 
   return (
@@ -99,15 +93,6 @@ const PostListClient = ({ initialPage }: PostListClientProps) => {
         {/* Extension 3: sort */}
         <PostSortSelect sort={sort} onSortChange={updateSort} />
       </div>
-
-      {selectedTags.length > 0 && (
-        <ActiveTagFilters
-          selectedTags={selectedTags}
-          tags={tags}
-          onRemoveTag={removeTag}
-          onClearAll={clearAll}
-        />
-      )}
 
       {/* Extension 1: PostList handles all modes (filtered + sorted) via backend */}
       <PostList

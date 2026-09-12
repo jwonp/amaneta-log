@@ -5,6 +5,7 @@ import {
   serializeAppError,
 } from "@/lib/errors/app-error"
 import { toPostDetailError } from "@/src/03_features/post/api/postDetail.error"
+import { revalidatePath } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 
 type RouteContext = {
@@ -37,6 +38,10 @@ export const PATCH = async (request: NextRequest, context: RouteContext) => {
 
   try {
     const { data, status } = await requestApi.patch(`/posts/${postId}`, payload)
+    if (payload.saveMode === "PUBLISH") {
+      revalidatePath("/posts")
+      revalidatePath(`/posts/${postId}`)
+    }
     return NextResponse.json(data, { status })
   } catch (error) {
     const appError = normalizeAppError(error)
